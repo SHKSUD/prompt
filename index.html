@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Prompt Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
+        .hero-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); /* Indigo to Cyan */
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loader { border-top-color: #06b6d4; -webkit-animation: spin 1s ease-in-out infinite; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Output Box Styling */
+        .prompt-output {
+            background-color: #1e293b; 
+            color: #e2e8f0; 
+            padding: 1.5rem; 
+            border-radius: 0.75rem; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+            min-height: 150px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800">
+
+    <div class="hero-bg text-white pt-16 pb-24 px-4 text-center">
+        <div class="max-w-4xl mx-auto relative z-10">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">Master Prompt Generator</h1>
+            <p class="text-xl text-indigo-100 opacity-90 max-w-2xl mx-auto font-light">
+                Generate high-quality, structured prompts for any objective.
+            </p>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 -mt-16 relative z-20 pb-20 space-y-10">
+        
+        <div class="bg-white rounded-xl shadow-2xl p-8 md:p-10 border border-slate-200">
+            <h2 class="text-2xl font-bold mb-6 text-slate-800">Define Your Prompt Objective</h2>
+            
+            <div class="space-y-6">
+                
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-2" for="templateSelect">Prompt Template (Optional)</label>
+                    <select id="templateSelect" onchange="useTemplate()" 
+                        class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
+                        <option value="custom">-- Start from Scratch (AI Generated) --</option>
+                        <option value="blog">SEO Blog Post Generator</option>
+                        <option value="python">Python Function Generator</option>
+                        <option value="marketing">Marketing Email Campaign</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-2" for="targetGoal">
+                        What is the final goal of your content/code? (The core output)
+                    </label>
+                    <textarea id="targetGoal" rows="3" placeholder="e.g. Write a 500-word blog post about the benefits of using Svelte over React."
+                           class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition bg-slate-50 text-slate-800"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="category">Category/Domain</label>
+                        <select id="category" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
+                            <option value="Marketing Copy">Marketing Copy</option>
+                            <option value="Coding/Development">Coding/Development</option>
+                            <option value="Creative Writing">Creative Writing</option>
+                            <option value="Educational Content">Educational Content</option>
+                            <option value="Technical Documentation">Technical Documentation</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="tone">Tone/Voice</label>
+                        <select id="tone" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
+                            <option value="Professional and Authoritative">Professional & Authoritative</option>
+                            <option value="Casual and Engaging">Casual & Engaging</option>
+                            <option value="Technical and Precise">Technical & Precise</option>
+                            <option value="Humorous and Lighthearted">Humorous & Lighthearted</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="detailLevel">Detail Level</label>
+                        <select id="detailLevel" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
+                            <option value="Concise and Direct">Concise (Under 200 words/50 lines)</option>
+                            <option value="Detailed and Thorough">Detailed (Standard length)</option>
+                            <option value="Exhaustive and In-depth">Exhaustive (Maximum detail)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="generateMasterPrompt()" id="generateButton"
+                        class="w-full py-4 mt-4 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-700 hover:to-cyan-600 text-white font-bold rounded-lg transition shadow-lg flex justify-center items-center gap-2">
+                    <span>Generate Master Prompt</span>
+                </button>
+
+                <div id="errorMsg" class="hidden mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm text-center border border-red-100 font-medium"></div>
+            </div>
+        </div>
+
+        <div id="outputSection" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-slate-800">Master Prompt Output</h2>
+                <button onclick="copyToClipboard('finalPrompt')" class="text-xs font-bold px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition">Copy to Clipboard</button>
+            </div>
+            
+            <pre id="finalPrompt" class="prompt-output"></pre>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-center py-8">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-300 h-10 w-10 mx-auto mb-4"></div>
+            <p class="text-slate-600 font-medium animate-pulse">Assembling context and parameters into a Master Prompt...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        // 🛑 PASTE YOUR NEW KEY BELOW 🛑
+        const API_KEY = "PASTE_YOUR_NEW_KEY_HERE"; 
+        
+        let ai;
+        // ✅ FIXED: Using the most stable model name
+        const modelName = 'gemini-1.5-flash'; 
+
+        // --- JSON Schema ---
+        const PROMPT_OUTPUT_SCHEMA = {
+            type: "object",
+            properties: {
+                finalPrompt: { type: "string" },
+                role: { type: "string" }
+            },
+            required: ["finalPrompt", "role"]
+        };
+        
+        // --- Templates ---
+        const TEMPLATES = {
+            custom: { goal: "", category: "Marketing Copy", tone: "Professional and Authoritative", detail: "Detailed and Thorough" },
+            blog: { goal: "Generate a detailed blog post outline about 'Future of AI'.", category: "Marketing Copy", tone: "Professional and Authoritative", detail: "Exhaustive and In-depth" },
+            python: { goal: "Write a Python function to parse CSV files.", category: "Coding/Development", tone: "Technical and Precise", detail: "Detailed and Thorough" },
+            marketing: { goal: "Draft a 3-part email launch sequence.", category: "Marketing Copy", tone: "Casual and Engaging", detail: "Detailed and Thorough" }
+        };
+
+        window.useTemplate = function() {
+            const template = TEMPLATES[document.getElementById('templateSelect').value] || TEMPLATES.custom;
+            document.getElementById('targetGoal').value = template.goal;
+            document.getElementById('category').value = template.category;
+            document.getElementById('tone').value = template.tone;
+            document.getElementById('detailLevel').value = template.detail;
+        };
+
+        window.generateMasterPrompt = async function() {
+            const goal = document.getElementById('targetGoal').value.trim();
+            const category = document.getElementById('category').value;
+            const tone = document.getElementById('tone').value;
+            const detailLevel = document.getElementById('detailLevel').value;
+            
+            const btn = document.getElementById('generateButton');
+            const loader = document.getElementById('loadingIndicator');
+            const outputSection = document.getElementById('outputSection');
+            const error = document.getElementById('errorMsg');
+
+            error.classList.add('hidden');
+            outputSection.classList.add('hidden');
+            
+            if (goal.length < 5) { showError("Please enter a goal."); return; }
+            
+            // Initialize Check
+            if (!ai) { 
+                try {
+                    ai = new GoogleGenerativeAI(API_KEY); 
+                } catch (e) {
+                    showError("Failed to initialize AI. Check console.");
+                    return;
+                }
+            }
+
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            loader.classList.remove('hidden');
+
+            const metaPrompt = `
+                Act as a Master Prompt Engineer. Convert the user's goal into a high-quality, structured prompt.
+                User Goal: "${goal}"
+                Category: ${category}
+                Tone: ${tone}
+                Detail Level: ${detailLevel}
+                
+                Output strictly valid JSON: { "finalPrompt": "...", "role": "..." }
+            `;
+
+            try {
+                const model = ai.getGenerativeModel({
+                    model: modelName,
+                    generationConfig: { responseMimeType: "application/json" }
+                });
+
+                const result = await model.generateContent(metaPrompt);
+                
+                if (!result.text) throw new Error("Empty response from API.");
+
+                const structuredOutput = JSON.parse(result.text());
+                document.getElementById('finalPrompt').textContent = structuredOutput.finalPrompt;
+                outputSection.classList.remove('hidden');
+
+            } catch (e) {
+                console.error(e);
+                showError("API Error: " + (e.message || "Unknown error"));
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                loader.classList.add('hidden');
+            }
+        };
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        window.copyToClipboard = function(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => useTemplate());
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Prompt Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
+        .hero-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); /* Indigo to Cyan */
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loader { border-top-color: #06b6d4; -webkit-animation: spin 1s ease-in-out infinite; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Output Box Styling */
+        .prompt-output {
+            background-color: #1e293b; 
+            color: #e2e8f0; 
+            padding: 1.5rem; 
+            border-radius: 0.75rem; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+            min-height: 150px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800">
+
+    <div class="hero-bg text-white pt-16 pb-24 px-4 text-center">
+        <div class="max-w-4xl mx-auto relative z-10">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">Master Prompt Generator</h1>
+            <p class="text-xl text-indigo-100 opacity-90 max-w-2xl mx-auto font-light">
+                Generate high-quality, structured prompts for any objective.
+            </p>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 -mt-16 relative z-20 pb-20 space-y-10">
+        
+        <div class="bg-white rounded-xl shadow-2xl p-8 md:p-10 border border-slate-200">
+            <h2 class="text-2xl font-bold mb-6 text-slate-800">Define Your Prompt Objective</h2>
+            
+            <div class="space-y-6">
+                
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-2" for="templateSelect">Prompt Template (Optional)</label>
+                    <select id="templateSelect" onchange="useTemplate()" 
+                        class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
+                        <option value="custom">-- Start from Scratch (AI Generated) --</option>
+                        <option value="blog">SEO Blog Post Generator</option>
+                        <option value="python">Python Function Generator</option>
+                        <option value="marketing">Marketing Email Campaign</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-600 mb-2" for="targetGoal">
+                        What is the final goal of your content/code? (The core output)
+                    </label>
+                    <textarea id="targetGoal" rows="3" placeholder="e.g. Write a 500-word blog post about the benefits of using Svelte over React."
+                           class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition bg-slate-50 text-slate-800"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="category">Category/Domain</label>
+                        <select id="category" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
+                            <option value="Marketing Copy">Marketing Copy</option>
+                            <option value="Coding/Development">Coding/Development</option>
+                            <option value="Creative Writing">Creative Writing</option>
+                            <option value="Educational Content">Educational Content</option>
+                            <option value="Technical Documentation">Technical Documentation</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="tone">Tone/Voice</label>
+                        <select id="tone" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
+                            <option value="Professional and Authoritative">Professional & Authoritative</option>
+                            <option value="Casual and Engaging">Casual & Engaging</option>
+                            <option value="Technical and Precise">Technical & Precise</option>
+                            <option value="Humorous and Lighthearted">Humorous & Lighthearted</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="detailLevel">Detail Level</label>
+                        <select id="detailLevel" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
+                            <option value="Concise and Direct">Concise (Under 200 words/50 lines)</option>
+                            <option value="Detailed and Thorough">Detailed (Standard length)</option>
+                            <option value="Exhaustive and In-depth">Exhaustive (Maximum detail)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="generateMasterPrompt()" id="generateButton"
+                        class="w-full py-4 mt-4 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-700 hover:to-cyan-600 text-white font-bold rounded-lg transition shadow-lg flex justify-center items-center gap-2">
+                    <span>Generate Master Prompt</span>
+                </button>
+
+                <div id="errorMsg" class="hidden mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm text-center border border-red-100 font-medium"></div>
+            </div>
+        </div>
+
+        <div id="outputSection" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-slate-800">Master Prompt Output</h2>
+                <button onclick="copyToClipboard('finalPrompt')" class="text-xs font-bold px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition">Copy to Clipboard</button>
+            </div>
+            
+            <pre id="finalPrompt" class="prompt-output"></pre>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-center py-8">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-300 h-10 w-10 mx-auto mb-4"></div>
+            <p class="text-slate-600 font-medium animate-pulse">Assembling context and parameters into a Master Prompt...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+	const API_KEY = "AIzaSyAnzpQmKSWSlzwTwtCTHnIDpMv3fd6_Wis"; 
+        
+        let ai;
+        const modelName = 'gemini-2.5-pro'; 
+
+        // --- JSON Schema for Output Prompt ---
+        const PROMPT_OUTPUT_SCHEMA = {
+            type: "object",
+            properties: {
+                finalPrompt: { 
+                    type: "string", 
+                    description: "The complete, polished, and ready-to-use master prompt string." 
+                },
+                role: {
+                    type: "string",
+                    description: "The expert persona/role assigned in the prompt (e.g., 'Senior Content Strategist', 'Full-Stack Developer')."
+                }
+            },
+            required: ["finalPrompt", "role"]
+        };
+        
+        // --- Pre-defined Prompt Templates ---
+        const TEMPLATES = {
+            custom: { goal: "", category: "Marketing Copy", tone: "Professional and Authoritative", detail: "Detailed and Thorough" },
+            blog: { 
+                goal: "Generate a detailed outline and first 300 words for a blog post targeting the key phrase 'Future of AI in Content Marketing'. The post should be structured for SEO, including H2/H3 tags, and feature a clear call to action.", 
+                category: "Marketing Copy", 
+                tone: "Professional and Authoritative", 
+                detail: "Exhaustive and In-depth" 
+            },
+            python: { 
+                goal: "Write a complete, tested Python class for converting JSON data into a CSV file, handling nested structures gracefully. Include a brief usage example.", 
+                category: "Coding/Development", 
+                tone: "Technical and Precise", 
+                detail: "Detailed and Thorough" 
+            },
+            marketing: { 
+                goal: "Draft a three-part email sequence (Awareness, Consideration, Conversion) to launch a new productivity software product to a cold audience. Focus on clear value propositions and strong CTAs.", 
+                category: "Marketing Copy", 
+                tone: "Casual and Engaging", 
+                detail: "Detailed and Thorough" 
+            }
+        };
+
+        // --- Template Selector Handler ---
+        window.useTemplate = function() {
+            const templateId = document.getElementById('templateSelect').value;
+            const template = TEMPLATES[templateId] || TEMPLATES.custom;
+            
+            // Populate fields based on the selected template
+            document.getElementById('targetGoal').value = template.goal;
+            document.getElementById('category').value = template.category;
+            document.getElementById('tone').value = template.tone;
+            document.getElementById('detailLevel').value = template.detail;
+        };
+
+
+        // --- Core Generation Function ---
+        window.generateMasterPrompt = async function() {
+            const goal = document.getElementById('targetGoal').value.trim();
+            const category = document.getElementById('category').value;
+            const tone = document.getElementById('tone').value;
+            const detailLevel = document.getElementById('detailLevel').value;
+            
+            const btn = document.getElementById('generateButton');
+            const loader = document.getElementById('loadingIndicator');
+            const outputSection = document.getElementById('outputSection');
+            const outputDiv = document.getElementById('finalPrompt');
+            const error = document.getElementById('errorMsg');
+
+            // Reset UI
+            error.classList.add('hidden');
+            outputSection.classList.add('hidden');
+            outputDiv.textContent = '';
+            
+            // Validation
+            if (goal.length < 10) { 
+                showError("Please describe your goal in more detail (at least 10 characters)."); 
+                return; 
+            }
+            if (API_KEY === "YOUR_NEW_GEMINI_API_KEY_HERE" || API_KEY.length < 30) {
+                 showError("🚨 Critical Error: Please set a valid Gemini API Key in the script.");
+                 return;
+            }
+
+            // Initialization
+            if (!ai) { ai = new GoogleGenerativeAI(API_KEY); }
+
+            // UI Loading
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loader ease-linear rounded-full border-4 border-t-4 border-white h-5 w-5"></div> Assembling...';
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            loader.classList.remove('hidden');
+
+            // --- Construct the Meta-Prompt for the Gemini Model ---
+            const metaPrompt = `
+                You are a Master Prompt Generator. Your task is to take a user's simple objective and transform it into a highly effective, structured, and detailed master prompt that an AI model can use to produce superior output.
+
+                Follow these steps:
+                1. **Assign a Role:** Based on the Category: "${category}", assign an expert persona (e.g., Senior Content Strategist, Full-Stack Python Developer).
+                2. **Establish Context:** Define the task and clearly state the user's objective: "${goal}".
+                3. **Apply Constraints:** Enforce the following parameters:
+                   - **Tone:** The output MUST adopt a "${tone}" tone.
+                   - **Detail/Length:** The output MUST be "${detailLevel}" in detail.
+                   - **Format:** If applicable, explicitly state the required output format (e.g., Markdown, JSON, Python Code Block).
+                4. **Add Success Criteria:** Include a final instruction (e.g., "Review your output to ensure it directly solves the objective and meets all constraints.").
+
+                Generate ONLY the final master prompt string and the assigned role, formatted strictly as the requested JSON schema.
+            `;
+
+            try {
+                const model = ai.getGenerativeModel({
+                    model: modelName,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: PROMPT_OUTPUT_SCHEMA,
+                        temperature: 0.5 
+                    }
+                });
+
+                const result = await model.generateContent(metaPrompt);
+                
+                // Check for an empty response
+                if (!result.text || result.text.trim().length < 5) {
+                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].finishReason === 'SAFETY') {
+                        throw new Error("Content generation was blocked by safety settings. Try simplifying your goal.");
+                    }
+                    throw new Error("Received an empty response from the API. Your key may be invalid or your network may be blocking the request (e.g., corporate firewall/VPN).");
+                }
+
+                // --- CRITICAL FIX: Robust JSON Extraction ---
+                let rawText = result.text.trim();
+                
+                // 1. Remove markdown code block delimiters
+                if (rawText.startsWith('```')) {
+                    rawText = rawText.replace(/```(json)?\s*/i, '').trim();
+                    rawText = rawText.replace(/```\s*$/, '').trim();
+                }
+                
+                // 2. Find the bounding curly braces { }
+                const jsonStart = rawText.indexOf('{');
+                const jsonEnd = rawText.lastIndexOf('}');
+                
+                if (jsonStart === -1 || jsonEnd === -1 || jsonEnd < jsonStart) {
+                    throw new Error("JSON parsing failed. The model output was malformed.");
+                }
+                
+                const cleanJsonText = rawText.substring(jsonStart, jsonEnd + 1);
+                const structuredOutput = JSON.parse(cleanJsonText);
+
+                // Display result
+                document.getElementById('finalPrompt').textContent = structuredOutput.finalPrompt;
+                outputSection.classList.remove('hidden');
+
+            } catch (e) {
+                console.error("Gemini API Call Failed:", e);
+                let msg = e.message || "Unknown error occurred.";
+                if (msg.includes("400")) msg = "API Key/Quota Error: Check your key's validity and usage quota on the Google AI Studio dashboard.";
+                showError(`🚨 Prompt Generation Error: ${msg}`);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>Generate Master Prompt</span>';
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                loader.classList.add('hidden');
+            }
+        };
+
+        // --- Utility Functions ---
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.innerHTML = msg;
+            el.classList.remove('hidden');
+        }
+
+        window.copyToClipboard = function(elementId) {
+            const textToCopy = document.getElementById(elementId).textContent;
+            if (textToCopy.length < 10) {
+                 alert("Nothing to copy. Please generate a prompt first.");
+                 return;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert("Master Prompt copied to clipboard! 📋");
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy. Please manually select and copy the text.');
+            });
+        };
+        
+        // Initialize template on load
+        document.addEventListener('DOMContentLoaded', () => useTemplate());
+    </script>
+</body>
+</html>
