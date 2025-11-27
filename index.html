@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEO Content Studio: Topic & Structure Generator (Secure)</title>
+    <title>SEO Content Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <!-- NOTE: The @google/generative-ai SDK import is removed because the calls are now routed through the secure Vercel proxy. -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
@@ -25,582 +22,438 @@
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 60%);
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 70%);
             pointer-events: none;
         }
-
-        .loader { border-top-color: #0ea5e9; -webkit-animation: spin 1s ease-in-out infinite; animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        .input-card {
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            transition: all 0.3s ease;
-        }
-
-        /* Style for the JSON output display */
-        .json-output {
-            background-color: #1e293b; 
-            color: #e2e8f0; 
-            padding: 1.5rem; 
-            border-radius: 0.75rem; 
-            font-family: 'Consolas', 'Monaco', monospace; 
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.4;
+        
+        .card {
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+            border-radius: 1.5rem;
         }
         
-        /* Content Draft Styles */
-        #contentDraft { font-family: 'Inter', sans-serif; color: #334155; line-height: 1.7; }
-        #contentDraft h1 { font-size: 2em; font-weight: 700; color: #0f172a; margin-top: 0.5em; margin-bottom: 0.5em; }
-        #contentDraft h2 { font-size: 1.5em; font-weight: 600; color: #1e293b; margin-top: 1.5em; margin-bottom: 0.5em; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.2em; }
-        #contentDraft h3 { font-size: 1.25em; font-weight: 600; color: #334155; margin-top: 1.2em; margin-bottom: 0.5em; }
-        #contentDraft p { margin-bottom: 1em; }
-        #contentDraft ul, #contentDraft ol { margin-bottom: 1em; padding-left: 1.5em; list-style-type: disc; }
-        #contentDraft li { margin-bottom: 0.3em; }
-        #contentDraft strong { color: #0f172a; font-weight: 600; }
-        #contentDraft blockquote { border-left: 4px solid #0ea5e9; padding-left: 1em; font-style: italic; color: #475569; background: #f1f5f9; padding: 0.5em 1em; border-radius: 0 4px 4px 0; }
+        .input-group label {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        /* Loading Spinner Animation */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom scrollbar for data tables */
+        .data-table-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .data-table-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .data-table-container::-webkit-scrollbar-track {
+            background-color: #f1f5f9;
+        }
+
     </style>
 </head>
-<body class="min-h-screen flex flex-col text-slate-800">
+<body>
 
-    <!-- HERO SECTION -->
-    <div class="hero-bg text-white pt-20 pb-32 px-4 text-center">
-        <div class="max-w-4xl mx-auto relative z-10">
-            <h1 class="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">SEO Content Studio</h1>
-            <p class="text-xl md:text-2xl text-teal-50 opacity-90 max-w-2xl mx-auto font-light mb-8">
-                Generate topics, metadata, outlines, and **full content drafts**.
-            </p>
-            <p class="text-sm text-cyan-100 uppercase tracking-widest font-semibold">Powered by Gemini 2.5 Pro</p>
-        </div>
-    </div>
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- HEADER / INPUT SECTION -->
+        <header class="hero-bg py-16 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-white mb-2 tracking-tight">
+                    SEO Content Studio
+                </h1>
+                <p class="text-white text-opacity-80 text-xl mb-8">
+                    Generate high-value content topics and structured drafts using Gemini.
+                </p>
 
-    <!-- MAIN APP CONTAINER -->
-    <div class="max-w-6xl mx-auto px-4 -mt-20 relative z-20 pb-20 space-y-12">
-        
-        <!-- INPUT CARD -->
-        <div class="bg-white rounded-2xl input-card p-8 md:p-10 border border-slate-200 relative overflow-hidden">
-            <div class="relative z-10">
-                
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                    
-                    <!-- Seed Keyword Input -->
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold text-slate-600 mb-2">Seed Topic / Keyword</label>
-                        <input type="text" id="seedKeyword" placeholder="e.g. Vintage Mechanical Keyboards" 
-                               class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition bg-slate-50 text-slate-800 placeholder-slate-400">
+                <!-- INPUT CARD -->
+                <div class="bg-white card p-6 sm:p-8 space-y-6">
+                    <!-- Target Audience -->
+                    <div class="input-group">
+                        <label for="audience" class="block text-sm mb-2">Target Audience/Niche</label>
+                        <input type="text" id="audience" value="small business owners interested in local SEO" placeholder="e.g., developers learning React, dog owners in NYC"
+                            class="w-full border border-slate-300 p-3 rounded-xl focus:ring-cyan-500 focus:border-cyan-500 transition duration-150"
+                            oninput="clearData()">
                     </div>
 
-                    <!-- Content Angle Selector -->
-                    <div class="md:col-span-1">
-                        <label class="block text-sm font-semibold text-slate-600 mb-2">Content Angle</label>
-                        <select id="contentFilter" class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none bg-slate-50 text-slate-700 cursor-pointer">
-                            <option value="mixed">Mix of All (High-Value)</option>
-                            <option value="How-To Guide">How-To Guides / Tutorials</option>
-                            <option value="Listicle">Listicles (Top X)</option>
-                            <option value="Commercial">Commercial / Reviews</option>
-                            <option value="Informational">Informational / Explainer</option>
+                    <!-- Keywords -->
+                    <div class="input-group">
+                        <label for="keywords" class="block text-sm mb-2">Primary Keywords (comma separated)</label>
+                        <input type="text" id="keywords" value="local SEO, Google Business Profile, geo-fencing" placeholder="e.g., best coffee, AI tools, home workout routine"
+                            class="w-full border border-slate-300 p-3 rounded-xl focus:ring-cyan-500 focus:border-cyan-500 transition duration-150"
+                            oninput="clearData()">
+                    </div>
+                    
+                    <!-- Tone of Voice -->
+                    <div class="input-group">
+                        <label for="tone" class="block text-sm mb-2">Tone of Voice</label>
+                        <select id="tone" 
+                            class="w-full border border-slate-300 p-3 rounded-xl focus:ring-cyan-500 focus:border-cyan-500 transition duration-150 appearance-none bg-white"
+                            onchange="clearData()">
+                            <option value="authoritative">Authoritative and Professional</option>
+                            <option value="friendly">Friendly and Conversational</option>
+                            <option value="witty">Witty and Sarcastic</option>
                         </select>
                     </div>
 
                     <!-- Generate Button -->
-                    <div class="md:col-span-1">
-                        <button onclick="generateContentPlan()" id="generateButton"
-                                class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold rounded-xl transition shadow-lg flex justify-center items-center gap-2">
-                            <span>Generate Topics</span>
-                        </button>
-                    </div>
+                    <button id="generateTopicsBtn" onclick="generateTopics()"
+                        class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-xl transition duration-300 flex items-center justify-center disabled:opacity-50"
+                        disabled>
+                        <span id="loadingSpinner" class="hidden spinner mr-3"></span>
+                        <span id="buttonText">Generate Topics & Meta Data</span>
+                    </button>
+                    
+                    <p id="errorMsg" class="text-red-600 font-medium text-sm text-center hidden"></p>
                 </div>
-                <!-- Error Message Box -->
-                <div id="errorMsg" class="hidden mt-4 p-4 bg-red-50 text-red-600 rounded-xl text-sm text-center border border-red-100 font-medium"></div>
+                <!-- /INPUT CARD -->
             </div>
-        </div>
+        </header>
 
-        <!-- RESULTS SECTION -->
-        <div id="resultsSection" class="hidden space-y-12">
-            <!-- Loading Topics -->
-            <div id="loadingIndicator" class="hidden text-center py-12">
-                <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-12 w-12 mx-auto mb-4"></div>
-                <p class="text-slate-600 font-medium animate-pulse">Analyzing search intent and competition...</p>
-            </div>
-
-            <!-- Table -->
-            <div id="resultsContainer" class="hidden bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-                <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-700">Generated Strategy</h3>
-                    <div class="flex gap-2">
-                        <button onclick="copyToClipboard('csv')" class="text-xs font-bold px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition">Export CSV</button>
-                    </div>
-                </div>
+        <!-- MAIN CONTENT SECTION (RESULTS) -->
+        <main class="flex-grow py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-6xl mx-auto">
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <!-- Table Head -->
-                        <thead id="resultsHead" class="bg-slate-100 text-xs uppercase text-slate-500 font-bold tracking-wider">
-                            <tr>
-                                <th class="p-5 border-b w-1/4">Title & URL Slug</th>
-                                <th class="p-5 border-b w-1/4">Meta Description</th>
-                                <th class="p-5 border-b w-1/6">Difficulty</th>
-                                <th class="p-5 border-b w-1/6">Volume</th>
-                                <th class="p-5 border-b w-1/6">Action</th> 
-                            </tr>
-                        </thead>
-                        <tbody id="resultsBody" class="divide-y divide-slate-100 text-sm text-slate-700 bg-white">
-                            <!-- JS Injection -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- STRUCTURE OUTPUT SECTION -->
-            <div id="structureSection" class="hidden w-full mb-10">
-                <h2 class="text-3xl font-extrabold text-slate-900 mb-6">Content Outline & Draft for: <span id="outlineTopic" class="text-indigo-600"></span></h2>
-                
-                <!-- Loading Indicator for Structure -->
-                <div id="structureLoading" class="hidden w-full text-center py-8 bg-white rounded-xl shadow border border-slate-200">
-                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-8 w-8 mx-auto mb-3"></div>
-                    <p id="structureLoadingText" class="text-slate-600 font-medium">Generating detailed SEO content structure...</p>
-                </div>
-
-                <!-- JSON Output Display (Outline) -->
-                <div id="jsonStructureContainer" class="relative hidden mb-8">
-                     <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xl font-bold text-slate-800">Step 1: Structured Outline</h3>
-                        <div class="flex gap-2">
-                            <button onclick="copyJsonStructure()" class="bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
-                                Copy JSON Outline
-                            </button>
-                            <button onclick="generateDraftFromOutline()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                Generate Full Draft
-                            </button>
+                <!-- TOPICS TABLE -->
+                <section id="topicResults" class="hidden">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6">
+                        Generated SEO Content Topics
+                    </h2>
+                    
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-2 sm:space-y-0">
+                        <p class="text-sm text-slate-600">Select a topic to generate a detailed content structure.</p>
+                        <div class="flex space-x-2">
+                            <button onclick="copyToClipboard('csv')" class="text-xs font-medium text-cyan-700 hover:text-cyan-900 bg-cyan-100 px-3 py-1.5 rounded-lg transition duration-150">Copy CSV</button>
+                            <button onclick="copyToClipboard('json')" class="text-xs font-medium text-cyan-700 hover:text-cyan-900 bg-cyan-100 px-3 py-1.5 rounded-lg transition duration-150">Copy JSON</button>
                         </div>
                     </div>
-                    <pre id="jsonStructure" class="json-output"></pre>
-                </div>
+                    
 
-                <!-- DRAFT OUTPUT SECTION (NEW) -->
-                <div id="draftContainer" class="relative hidden">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-bold text-slate-800">Step 2: First Draft</h3>
-                        <button onclick="copyDraft()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs font-bold py-2 px-4 rounded-lg transition">
-                            Copy Draft
+                    <div class="data-table-container overflow-x-auto bg-white card shadow-lg">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead>
+                                <tr class="bg-slate-50">
+                                    <th class="p-5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-5/12">Topic & Slug</th>
+                                    <th class="p-5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-4/12">Meta Description</th>
+                                    <th class="p-5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-1/12">Difficulty</th>
+                                    <th class="p-5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-1/12">Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topicTableBody" class="divide-y divide-slate-100">
+                                <!-- Topic rows will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                <!-- CONTENT STRUCTURE / DRAFT SECTION -->
+                <section id="draftSection" class="mt-12 hidden">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center space-x-3">
+                        <span id="draftTitle">Content Structure: [Selected Topic]</span>
+                        <span class="text-sm text-cyan-600 bg-cyan-50 px-3 py-1 rounded-full font-mono hidden" id="draftSlug"></span>
+                    </h2>
+
+                    <!-- TABS: STRUCTURE / DRAFT -->
+                    <div class="flex space-x-2 border-b border-slate-200 mb-6">
+                        <button id="structureTab" class="py-2 px-4 text-sm font-medium border-b-2 border-cyan-600 text-cyan-600 transition duration-150" onclick="showView('structure')">
+                            SEO Structure
+                        </button>
+                        <button id="draftTab" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition duration-150" onclick="showView('draft')">
+                            First Draft
                         </button>
                     </div>
-                    <div id="contentDraft" class="bg-white p-8 rounded-2xl shadow-xl border border-slate-200 prose prose-lg max-w-none">
-                        <!-- Draft content injected here -->
+
+                    <!-- GENERATE STRUCTURE BUTTON -->
+                    <button id="generateStructureBtn" onclick="generateStructure()"
+                        class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-xl transition duration-300 flex items-center justify-center disabled:opacity-50"
+                        disabled>
+                        <span id="loadingSpinnerStructure" class="hidden spinner mr-3"></span>
+                        <span id="buttonTextStructure">Generate Detailed Content Structure</span>
+                    </button>
+                    
+                    <!-- STRUCTURE VIEW -->
+                    <div id="structureView" class="mt-6 bg-white card p-6 sm:p-8 space-y-4 whitespace-pre-wrap text-slate-700 text-sm overflow-x-auto">
+                        <!-- Structure content will be injected here -->
                     </div>
-                </div>
+
+                    <!-- DRAFT VIEW -->
+                    <div id="draftView" class="mt-6 hidden">
+                        <button id="generateDraftBtn" onclick="generateDraft()"
+                            class="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-3 px-6 rounded-xl transition duration-300 mb-6 flex items-center justify-center disabled:opacity-50"
+                            disabled>
+                            <span id="loadingSpinnerDraft" class="hidden spinner mr-3"></span>
+                            <span id="buttonTextDraft">Generate Full Content Draft</span>
+                        </button>
+
+                        <div id="draftContent" class="bg-white card p-6 sm:p-8 space-y-4 whitespace-pre-wrap text-slate-800 leading-relaxed text-base">
+                            <!-- Draft content will be injected here -->
+                        </div>
+                    </div>
+                </section>
+
             </div>
+        </main>
 
-        </div>
-
+        <!-- FOOTER -->
+        <footer class="text-center py-6 text-sm text-slate-500 border-t border-slate-100 mt-12">
+            Powered by Gemini API (via Vercel Proxy) | Designed for SEO content ideation.
+        </footer>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
-    <script type="module">
-        // The Gemini SDK is no longer imported client-side. All calls are routed through the secure Vercel proxy.
-        
+    <script>
+        // --- GLOBAL STATE ---
         let generatedData = [];
-        let currentOutlineJSON = null; // Store outline for drafting
-        const modelName = 'gemini-2.5-pro'; 
+        let selectedTopic = null;
+        let selectedStructure = null;
+        let lastErrorDetails = "";
+        
+        // --- CORE UTILITIES ---
 
-        // --- NEW: Proxy Utility Function ---
-        /**
-         * Generic function to call the secure Vercel proxy (/api/gemini-proxy).
-         * This is the replacement for direct SDK calls, keeping the API key on the server.
-         */
-        async function callProxy(prompt, config, mode) {
-            // Show a general error message if running locally without a proxy/key
-            if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
-                console.warn("Running locally. Ensure you are using a proxy server or have your environment variables set up.");
+        // NEW: Robustly cleans text returned from the LLM to isolate pure JSON content.
+        function cleanJsonString(str) {
+            if (!str) return "";
+            let cleaned = str.trim();
+
+            // 1. Remove Markdown code fences (e.g., ```json or ```)
+            // Check for and remove the opening fence (and any optional language identifier)
+            if (cleaned.startsWith('```')) {
+                const firstNewline = cleaned.indexOf('\n');
+                if (firstNewline !== -1) {
+                    cleaned = cleaned.substring(firstNewline + 1).trim();
+                } else {
+                    // Just removes the starting ``` if it's on the first line
+                    cleaned = cleaned.substring(3).trim(); 
+                }
+            }
+
+            // Remove the closing fence if present
+            if (cleaned.endsWith('```')) {
+                cleaned = cleaned.substring(0, cleaned.lastIndexOf('```')).trim();
+            }
+
+            // 2. Isolate the JSON object/array using index of first/last brace/bracket
+            const firstBracket = cleaned.indexOf('{');
+            const firstBrace = cleaned.indexOf('[');
+            let start = Math.min(
+                firstBracket === -1 ? Infinity : firstBracket,
+                firstBrace === -1 ? Infinity : firstBrace
+            );
+
+            const lastBracket = cleaned.lastIndexOf('}');
+            const lastBrace = cleaned.lastIndexOf(']');
+            let end = Math.max(
+                lastBracket === -1 ? -Infinity : lastBracket,
+                lastBrace === -1 ? -Infinity : lastBrace
+            );
+
+            if (start !== Infinity && end !== -Infinity && end > start) {
+                // Ensure we capture the opening and closing structure
+                cleaned = cleaned.substring(start, end + 1);
             }
             
-            // The fetch request targets the serverless function path
-            const response = await fetch('/api/gemini-proxy', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ prompt, config, mode }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Log the full error from the proxy, including the hint about the missing key
-                console.error("Proxy Error:", data.error, data.details, data.hint);
-                throw new Error(data.error || 'Proxy server error');
-            }
-
-            return data;
+            return cleaned;
         }
 
-        // --- 1. JSON Schema for Topic Generation (Used by Proxy) ---
-        const contentSchema = {
-            type: "array",
-            items: {
-                type: "object",
-                properties: {
-                    title: { type: "string", description: "A compelling, high-value, SEO-optimized content title." },
-                    slug: { type: "string", description: "The URL slug, converted to kebab-case (e.g., 'ultimate-guide-to-seo')." },
-                    meta: { type: "string", description: "A concise, actionable meta description (under 160 characters) to drive clicks." },
-                    difficulty: { type: "string", description: "Estimated SEO Difficulty (Low, Medium, High)" },
-                    volume: { type: "string", description: "Estimated Search Volume (e.g., '1k-5k/mo', 'Low', 'High')" },
-                    category: { type: "string", description: "The content angle/category (e.g., How-To Guide, Listicle, Commercial, Informational)." }
-                },
-                required: ["title", "slug", "meta", "difficulty", "volume", "category"]
-            }
-        };
+        function showLoading(text) {
+            const btn = document.getElementById(selectedTopic ? 'generateStructureBtn' : 'generateTopicsBtn');
+            const spinnerId = selectedTopic ? 'loadingSpinnerStructure' : 'loadingSpinner';
+            const textId = selectedTopic ? 'buttonTextStructure' : 'buttonText';
 
-        // --- 2. JSON Schema for Structure Generation (Used by Proxy) ---
-        const STRUCTURE_SCHEMA = {
-            type: "object",
-            properties: {
-                target_topic: { type: "string", description: "The final, most compelling H1 title." },
-                sections: {
-                    type: "array",
-                    description: "4-6 highly relevant H2 sections with detailed H3 subpoints and SEO recommendations.",
-                    items: {
-                        type: "object",
-                        properties: {
-                            h2: { type: "string", description: "The H2 section title." },
-                            h3_subpoints: { 
-                                type: "array", 
-                                description: "2-3 highly specific H3 subpoints that fully cover the search intent for this H2.", 
-                                items: { type: "string" } 
-                            },
-                            primary_intent: { type: "string", description: "The primary search intent for this section (Informational, Commercial, Transactional)." },
-                            keywords: { 
-                                type: "array", 
-                                description: "Recommended long-tail keyword clusters for this section (3-5 phrases).", 
-                                items: { type: "string" } 
-                            },
-                            link_strategy: {
-                                type: "object",
-                                properties: {
-                                    internal: { type: "string", description: "Suggested anchor text and topic for one internal link." },
-                                    external: { type: "string", description: "Suggested topic/authority site to reference as an external link." }
-                                },
-                                required: ["internal", "external"]
-                            }
-                        },
-                        required: ["h2", "h3_subpoints", "primary_intent", "keywords", "link_strategy"]
-                    }
-                },
-                conclusion_cta: { type: "string", description: "A strong, single-sentence call-to-action suggestion for the end of the post." }
-            },
-            required: ["target_topic", "sections", "conclusion_cta"]
-        };
-
-
-        // --- Core Content Generation (Topics/Metadata) ---
-        // REFACRORED TO USE PROXY
-        window.generateContentPlan = async function() {
-            const seed = document.getElementById('seedKeyword').value.trim();
-            const filter = document.getElementById('contentFilter').value;
-            const btn = document.getElementById('generateButton');
-            const resultsSection = document.getElementById('resultsSection');
-            const loader = document.getElementById('loadingIndicator');
-            const container = document.getElementById('resultsContainer');
-            const error = document.getElementById('errorMsg');
-            const structureSection = document.getElementById('structureSection');
-
-            // Reset UI
-            error.classList.add('hidden');
-            structureSection.classList.add('hidden'); 
-            
-            if (seed.length < 2) { showError("Please enter a valid topic."); return; }
-
-            // UI Loading
-            btn.disabled = true;
-            btn.innerHTML = '<div class="loader ease-linear rounded-full border-4 border-t-4 border-white h-5 w-5"></div> Generating...';
-            btn.classList.add('opacity-75', 'cursor-not-allowed');
-            resultsSection.classList.remove('hidden');
-            loader.classList.remove('hidden');
-            container.classList.add('hidden');
-            generatedData = [];
-
-            // Prompt construction
-            let promptAngle = filter === 'mixed' ?
-            "a mix of angles (How-to, Commercial, Listicle)" : `exclusively "${filter}" style content`;
-            const prompt = `Generate 10 high-value, SEO-optimized content topics for the keyword: "${seed}".
-            Focus on ${promptAngle}.
-            For each topic, estimate the SEO Difficulty (Low/Medium/High) and potential Search Volume based on general niche knowledge.`;
-            const systemInstruction = `You are an expert SEO Strategist. 
-            Output strictly a JSON array based on the schema provided.
-            Ensure titles are click-worthy and meta descriptions are actionable.`;
-            
-            // Proxy Configuration
-            const proxyConfig = {
-                systemInstruction: systemInstruction,
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: contentSchema,
-                    temperature: 0.7
-                }
-            };
-
-
-            try {
-                // Call the secure proxy endpoint
-                const result = await callProxy(prompt, proxyConfig, 'topics');
-                
-                if (!result.text || result.text.trim().length < 5) {
-                   throw new Error("Received an empty response from the API. Check Vercel logs for proxy errors.");
-                }
-                
-                let rawText = result.text.trim();
-                
-                // Robustly clean and find the JSON array
-                if (rawText.startsWith('```')) {
-                    rawText = rawText.replace(/```(json)?\s*/i, '').trim();
-                    rawText = rawText.replace(/```\s*$/, '').trim();
-                }
-
-                const startIndex = rawText.indexOf('[');
-                const endIndex = rawText.lastIndexOf(']');
-                
-                if (startIndex === -1 || endIndex === -1) {
-                    throw new Error("JSON parsing failed. The model did not return a complete JSON array [].");
-                }
-                
-                const cleanJsonText = rawText.substring(startIndex, endIndex + 1);
-                const apiTopics = JSON.parse(cleanJsonText);
-                
-                generatedData = apiTopics.map(item => ({
-                    title: item.title,
-                    slug: cleanSlug(item.slug || item.title),
-                    meta: item.meta,
-                    difficulty: item.difficulty,
-                    volume: item.volume,
-                    category: item.category
-                }));
-
-                renderTable();
-
-            } catch (e) {
-                console.error("Content Plan Generation Failed:", e);
-                let msg = e.message || "Unknown error occurred.";
-                if (msg.includes("400")) msg = "Proxy error: Check your input or Vercel logs (Bad Request).";
-                if (msg.includes("500")) msg = "Proxy error: Check Vercel logs (Internal Server Error, often API Key).";
-                if (msg.includes("JSON")) msg = "JSON parsing failed. The proxy returned malformed content.";
-                showError(`🚨 Topic Generation Error: ${msg}`);
-                container.classList.add('hidden');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<span>Generate Topics</span>';
-                btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                loader.classList.add('hidden');
-                
-                if (generatedData.length > 0) {
-                    container.classList.remove('hidden');
-                }
-            }
-        };
-
-        // --- Structure Generation Function ---
-        // REFACRORED TO USE PROXY
-        window.generateDetailedStructure = async function(topicTitle) {
-            const structureSection = document.getElementById('structureSection');
-            const outlineTopic = document.getElementById('outlineTopic');
-            const structureLoader = document.getElementById('structureLoading');
-            const structureLoaderText = document.getElementById('structureLoadingText');
-            const jsonStructureDiv = document.getElementById('jsonStructure');
-            const jsonContainer = document.getElementById('jsonStructureContainer');
-            const draftContainer = document.getElementById('draftContainer'); 
-            const error = document.getElementById('errorMsg');
-            
-            error.classList.add('hidden');
-            structureSection.classList.remove('hidden');
-            structureLoader.classList.remove('hidden');
-            jsonContainer.classList.add('hidden');
-            draftContainer.classList.add('hidden'); 
-            jsonStructureDiv.textContent = '';
-            outlineTopic.textContent = topicTitle;
-            structureLoaderText.textContent = `Generating detailed SEO content structure for "${topicTitle}"...`;
-
-            const structureSystemInstruction = `You are an expert SEO content strategist and blog architect.
-Given the chosen topic, generate a detailed blog content structure that maximizes SEO value and reader engagement.
-You MUST output STRICTLY a single JSON object that conforms to the provided JSON schema. Do not include any other text, markdown, or commentary.`;
-
-            const structurePrompt = `Chosen topic: "${topicTitle}". Generate the detailed content structure plan.`;
-            
-            // Proxy Configuration
-            const proxyConfig = {
-                systemInstruction: structureSystemInstruction,
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: STRUCTURE_SCHEMA,
-                    temperature: 0.7 
-                }
-            };
-
-
-            try {
-                // Call the secure proxy endpoint
-                const response = await callProxy(structurePrompt, proxyConfig, 'structure');
-                
-                if (!response.text) {
-                    throw new Error("Received an empty response from the API. Check Vercel logs.");
-                }
-                
-                let rawText = response.text.trim();
-                
-                if (rawText.startsWith('```')) {
-                    rawText = rawText.replace(/```(json)?\s*/i, '').trim();
-                    rawText = rawText.replace(/```\s*$/, '').trim();
-                }
-
-                const jsonStart = rawText.indexOf('{');
-                const jsonEnd = rawText.lastIndexOf('}');
-                
-                if (jsonStart === -1 || jsonEnd === -1) {
-                    throw new Error("JSON parsing failed. The model did not return a complete JSON object {}.");
-                }
-                
-                const cleanJsonText = rawText.substring(jsonStart, jsonEnd + 1);
-                
-                currentOutlineJSON = JSON.parse(cleanJsonText); 
-
-                // Pretty print the JSON for display
-                jsonStructureDiv.textContent = JSON.stringify(currentOutlineJSON, null, 2);
-                jsonContainer.classList.remove('hidden');
-
-            } catch (e) {
-                console.error("Structure Generation Failed:", e);
-                let msg = e.message || "Unknown error occurred.";
-                showError(`🚨 Structure API Error: ${msg}`);
-            } finally {
-                structureLoader.classList.add('hidden');
-            }
-        }
-
-        // --- NEW: Draft Generation Function ---
-        // REFACRORED TO USE PROXY
-        window.generateDraftFromOutline = async function() {
-            if (!currentOutlineJSON) {
-                showError("No outline found. Please generate an outline first.");
+            if (selectedTopic === null && document.getElementById('draftView').classList.contains('active')) {
+                // Special case for Draft button
+                document.getElementById('loadingSpinnerDraft').classList.remove('hidden');
+                document.getElementById('buttonTextDraft').textContent = text;
+                document.getElementById('generateDraftBtn').disabled = true;
                 return;
             }
 
-            const structureLoader = document.getElementById('structureLoading');
-            const structureLoaderText = document.getElementById('structureLoadingText');
-            const draftContainer = document.getElementById('draftContainer');
-            const contentDraftDiv = document.getElementById('contentDraft');
-            const error = document.getElementById('errorMsg');
+            document.getElementById(spinnerId).classList.remove('hidden');
+            document.getElementById(textId).textContent = text;
+            btn.disabled = true;
+            document.getElementById('errorMsg').classList.add('hidden');
+        }
 
-            // UI State for Drafting
-            error.classList.add('hidden');
-            structureLoader.classList.remove('hidden');
-            draftContainer.classList.add('hidden');
-            contentDraftDiv.innerHTML = '';
+        function hideLoading(isDraft = false) {
+            if (isDraft) {
+                document.getElementById('loadingSpinnerDraft').classList.add('hidden');
+                document.getElementById('buttonTextDraft').textContent = 'Generate Full Content Draft';
+                document.getElementById('generateDraftBtn').disabled = false;
+                return;
+            }
             
-            // Custom loading message
-            structureLoaderText.textContent = `Writing full first draft based on the outline... (This may take 10-20 seconds)`;
+            const btn = document.getElementById(selectedTopic ? 'generateStructureBtn' : 'generateTopicsBtn');
+            const spinnerId = selectedTopic ? 'loadingSpinnerStructure' : 'loadingSpinner';
+            const textId = selectedTopic ? 'buttonTextStructure' : 'buttonText';
+            
+            document.getElementById(spinnerId).classList.add('hidden');
+            document.getElementById(textId).textContent = selectedTopic ? 'Generate Detailed Content Structure' : 'Generate Topics & Meta Data';
+            btn.disabled = false;
+        }
+        
+        function showError(message) {
+            const msgElement = document.getElementById('errorMsg');
+            msgElement.textContent = message;
+            msgElement.classList.remove('hidden');
+            console.error("Application Error:", message);
+            if(lastErrorDetails) {
+                console.error("API Details:", lastErrorDetails);
+            }
+        }
+        
+        function clearData() {
+            generatedData = [];
+            selectedTopic = null;
+            selectedStructure = null;
+            document.getElementById('topicTableBody').innerHTML = '';
+            document.getElementById('topicResults').classList.add('hidden');
+            document.getElementById('draftSection').classList.add('hidden');
+            document.getElementById('generateTopicsBtn').disabled = false;
+        }
 
-            const draftSystemInstruction = `You are an expert content writer. 
-            Your task is to write a high-quality, engaging, and SEO-optimized first draft based STRICTLY on the provided JSON outline.
-            Use Markdown formatting (H1, H2, H3, bold, lists, blockquotes) to structure the article perfectly.
-            Tone: Professional yet accessible, authoritative, and helpful.
-            Write the FULL article content now.`;
+        // --- FETCH LOGIC ---
 
-            const draftPrompt = `Here is the approved content outline in JSON format:
-            ${JSON.stringify(currentOutlineJSON)}
+        async function apiCall(prompt, mode, systemInstruction, responseSchema = null) {
+            const generationConfig = {};
             
-            Write the complete article draft now. Start with the H1 Title.`;
-            
-            // Proxy Configuration (No response schema needed for raw text output)
-            const proxyConfig = {
-                systemInstruction: draftSystemInstruction,
-                generationConfig: {
-                    temperature: 0.7 
+            if (responseSchema) {
+                generationConfig.responseMimeType = "application/json";
+                generationConfig.responseSchema = responseSchema;
+            }
+
+            const payload = {
+                prompt: prompt,
+                mode: mode,
+                config: {
+                    systemInstruction: systemInstruction,
+                    generationConfig: generationConfig
                 }
             };
-
+            
+            lastErrorDetails = ""; // Reset error details before new call
 
             try {
-                // Call the secure proxy endpoint
-                const response = await callProxy(draftPrompt, proxyConfig, 'draft');
-                
-                if (!response.text) {
-                    throw new Error("Received an empty draft response from the API. Check Vercel logs.");
+                const response = await fetch('/api/gemini-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorJson = await response.json().catch(() => ({ 
+                        error: 'Unknown server error', 
+                        details: response.statusText 
+                    }));
+                    lastErrorDetails = errorJson.details || errorJson.error || response.statusText;
+                    throw new Error(`API Proxy Error (${response.status}): ${errorJson.error || errorJson.details}`);
                 }
 
-                const draftMarkdown = response.text;
+                const responseText = await response.text();
                 
-                // Convert simple markdown to HTML for display
-                contentDraftDiv.innerHTML = renderMarkdownToHtml(draftMarkdown);
-                draftContainer.classList.remove('hidden');
+                if (responseSchema) {
+                    // If JSON is expected, clean it robustly
+                    const cleanedText = cleanJsonString(responseText);
+                    try {
+                        return JSON.parse(cleanedText);
+                    } catch (e) {
+                        lastErrorDetails = `Malformed JSON content received:\n${responseText}`;
+                        throw new Error("Topic Generation Error: JSON parsing failed. The proxy returned malformed content.");
+                    }
+                }
+                
+                // For non-JSON responses (structure/draft), return raw text
+                return responseText;
 
-            } catch (e) {
-                console.error("Draft Generation Failed:", e);
-                showError(`🚨 Draft Generation Error: ${e.message}`);
-            } finally {
-                structureLoader.classList.add('hidden');
+            } catch (error) {
+                throw error;
             }
         }
 
-        // --- Utility Functions (Unchanged) ---
+        // --- APP FLOW FUNCTIONS ---
 
-        function showError(msg) {
-            const el = document.getElementById('errorMsg');
-            el.innerHTML = msg;
-            el.classList.remove('hidden');
-        }
+        async function generateTopics() {
+            const audience = document.getElementById('audience').value.trim();
+            const keywords = document.getElementById('keywords').value.trim();
+            const tone = document.getElementById('tone').value;
+            
+            if (!audience || !keywords) {
+                showError("Please fill in both Audience and Keywords.");
+                return;
+            }
 
-        function cleanSlug(str) {
-            return str.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
-        }
-        
-        // Enhanced Markdown Renderer for the Draft
-        function renderMarkdownToHtml(markdown) {
-            let html = markdown;
+            showLoading("Generating SEO Topics...");
             
-            // H1, H2, H3
-            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-            
-            // Bold
-            html = html.replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>');
-            
-            // Blockquotes
-            html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
-            
-            // Lists (Unordered)
-            html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
-            html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
-            // Wrap lists (simple logic)
-            html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-            
-            // Paragraphs (double newline)
-            html = html.replace(/\n\n/g, '<p></p>');
-            
-            // Line breaks (single newline)
-            html = html.replace(/\n/g, '<br />');
-            
-            // Clean up extra BRs inside lists/headers
-            html = html.replace(/<\/h1><br \/>/g, '</h1>');
-            html = html.replace(/<\/h2><br \/>/g, '</h2>');
-            html = html.replace(/<\/h3><br \/>/g, '</h3>');
-            html = html.replace(/<\/ul><br \/>/g, '</ul>');
-            html = html.replace(/<\/li><br \/>/g, '</li>');
+            const systemPrompt = `You are a world-class SEO strategist and content generation AI. Your task is to generate five high-value blog post topics, slugs, meta descriptions, estimated difficulty (Easy, Medium, Hard), and estimated monthly search volume (Low, Medium, High). The tone must be ${tone}. The entire output MUST be a JSON array of objects, strictly following the provided schema, with no additional text or markdown formatting outside the JSON array.`;
 
-            return html;
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('resultsBody');
-            tbody.innerHTML = '';
-
-            generatedData.forEach(item => {
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50 transition";
+            const prompt = `Generate 5 blog post ideas for the target audience: "${audience}", focusing on these primary keywords: ${keywords}.`;
+            
+            const topicsSchema = {
+                type: "ARRAY",
+                items: {
+                    type: "OBJECT",
+                    properties: {
+                        title: { type: "STRING", description: "The title of the blog post, optimized for SEO." },
+                        slug: { type: "STRING", description: "The URL slug (all lowercase, hyphenated, no special characters)." },
+                        meta: { type: "STRING", description: "A concise, compelling meta description (under 160 characters)." },
+                        difficulty: { type: "STRING", description: "Estimated keyword difficulty (Low, Medium, or High)." },
+                        volume: { type: "STRING", description: "Estimated monthly search volume (Low, Medium, or High)." }
+                    },
+                    required: ["title", "slug", "meta", "difficulty", "volume"]
+                }
+            };
+            
+            try {
+                const topics = await apiCall(prompt, 'topics', systemPrompt, topicsSchema);
                 
-                let diffColor = "bg-yellow-100 text-yellow-700";
-                if(item.difficulty && item.difficulty.toLowerCase().includes("low")) diffColor = "bg-green-100 text-green-700";
-                if(item.difficulty && item.difficulty.toLowerCase().includes("high")) diffColor = "bg-red-100 text-red-700";
+                if (Array.isArray(topics) && topics.length > 0) {
+                    generatedData = topics;
+                    renderTopics(topics);
+                } else {
+                    showError("Generation failed or returned an empty list of topics.");
+                }
+                
+            } catch (error) {
+                showError(`🚨 Topic Generation Error: ${error.message}.`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderTopics(data) {
+            const tbody = document.getElementById('topicTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-5 text-center text-slate-500">No topics generated.</td></tr>';
+                document.getElementById('topicResults').classList.remove('hidden');
+                return;
+            }
+
+            data.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.className = 'cursor-pointer hover:bg-cyan-50 transition duration-150';
+                row.onclick = () => selectTopic(index);
+                
+                let diffColor;
+                switch(item.difficulty.toLowerCase()) {
+                    case 'easy': diffColor = 'bg-green-100 text-green-700'; break;
+                    case 'medium': diffColor = 'bg-yellow-100 text-yellow-700'; break;
+                    case 'hard': diffColor = 'bg-red-100 text-red-700'; break;
+                    default: diffColor = 'bg-slate-100 text-slate-700';
+                }
 
                 row.innerHTML = `
                     <td class="p-5 align-top">
@@ -612,64 +465,211 @@ You MUST output STRICTLY a single JSON object that conforms to the provided JSON
                         <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${diffColor}">${item.difficulty}</span>
                     </td>
                     <td class="p-5 align-top text-slate-600 font-medium">${item.volume}</td>
-                    
-                    <!-- Action Button Column -->
-                    <td class="p-5 align-top">
-                        <button onclick="generateDetailedStructure('${item.title.replace(/'/g, "\\'")}')" 
-                                class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-500 rounded-md hover:bg-indigo-600 transition">
-                            Plan Outline
-                        </button>
-                    </td>
                 `;
                 tbody.appendChild(row);
             });
+
+            document.getElementById('topicResults').classList.remove('hidden');
+            document.getElementById('draftSection').classList.add('hidden');
+            selectedTopic = null; // Clear previous selection
         }
 
-        window.copyJsonStructure = function() {
-            const jsonText = document.getElementById('jsonStructure').textContent;
-            if (jsonText.length < 10) return;
-            // Using execCommand for compatibility in sandboxed environments
-            const tempInput = document.createElement("textarea");
-            tempInput.value = jsonText;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            alert("JSON Outline copied!");
-        };
+        function selectTopic(index) {
+            selectedTopic = generatedData[index];
+            selectedStructure = null;
+            
+            // Highlight the selected row
+            document.querySelectorAll('#topicTableBody tr').forEach((row, i) => {
+                row.classList.toggle('bg-cyan-100', i === index);
+                row.classList.toggle('bg-white', i !== index);
+            });
 
-        window.copyDraft = function() {
-            // Create a temporary element to extract text properly
-            const tempInput = document.createElement("textarea");
-            tempInput.value = document.getElementById('contentDraft').innerText; 
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            alert("Draft content copied to clipboard!");
-        };
+            // Update Draft Section Header
+            document.getElementById('draftTitle').textContent = `Content Structure: ${selectedTopic.title}`;
+            document.getElementById('draftSlug').textContent = `/${selectedTopic.slug}`;
+            document.getElementById('draftSlug').classList.remove('hidden');
 
-        function copyToClipboard(format) {
+            // Reset Structure and Draft views
+            document.getElementById('structureView').innerHTML = '<p class="text-slate-500">Click "Generate Detailed Content Structure" above to begin.</p>';
+            document.getElementById('draftContent').innerHTML = '<p class="text-slate-500">Generate the structure first, then click the "First Draft" tab to generate the full article.</p>';
+            document.getElementById('draftView').classList.add('hidden'); // Hide draft tab content initially
+            document.getElementById('generateDraftBtn').disabled = true;
+
+            // Show Structure tab and activate its button
+            showView('structure');
+            document.getElementById('generateStructureBtn').disabled = false;
+            
+            document.getElementById('draftSection').classList.remove('hidden');
+        }
+
+        async function generateStructure() {
+            if (!selectedTopic) return;
+
+            showLoading("Analyzing SERP & Planning Structure...", false);
+            document.getElementById('structureView').innerHTML = `<div class="flex items-center space-x-2 text-cyan-600"><div class="spinner"></div><span>Generating structure...</span></div>`;
+            document.getElementById('generateDraftBtn').disabled = true;
+            document.getElementById('draftContent').innerHTML = '<p class="text-slate-500">Draft generation awaits structure completion.</p>';
+
+            const audience = document.getElementById('audience').value.trim();
+            const tone = document.getElementById('tone').value;
+
+            const systemPrompt = `You are a highly skilled SEO writer and content planner. Your task is to generate a detailed, comprehensive, and high-quality content structure (outline) for a blog post. The output MUST be in markdown format. Use H2, H3, and bullet points. Do not include a final H1 title, as the title is already provided. The tone must be ${tone}.`;
+            
+            const prompt = `Based on this SEO topic: "${selectedTopic.title}", and the target audience: "${audience}", generate a comprehensive content structure. Include a strong introduction, 4-6 main H2 sections, and detailed H3 sub-sections or bullet points under each H2 to guide a 1,500-2,000 word article. The meta description is: "${selectedTopic.meta}". Focus on the keywords: "${document.getElementById('keywords').value.trim()}"`;
+
+            try {
+                const structureText = await apiCall(prompt, 'structure', systemPrompt);
+                selectedStructure = structureText;
+                document.getElementById('structureView').innerHTML = renderMarkdown(structureText);
+                document.getElementById('generateDraftBtn').disabled = false; // Enable draft button
+            } catch (error) {
+                showError(`🚨 Structure Generation Error: ${error.message}.`);
+                document.getElementById('structureView').innerHTML = `<p class="text-red-600">Failed to generate structure. ${error.message}</p>`;
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function generateDraft() {
+            if (!selectedTopic || !selectedStructure) {
+                showError("Please generate the content structure first.");
+                return;
+            }
+
+            showLoading("Writing Full Draft (this may take 30-60 seconds)...", true);
+            document.getElementById('draftContent').innerHTML = `<div class="flex items-center space-x-2 text-fuchsia-600"><div class="spinner"></div><span>Writing draft...</span></div>`;
+
+            const audience = document.getElementById('audience').value.trim();
+            const tone = document.getElementById('tone').value;
+            
+            const systemPrompt = `You are a professional content writer. Your task is to write a full, compelling, and high-quality first draft of a blog post, strictly following the provided content structure. The tone must be ${tone} and perfectly match the target audience: "${audience}". The entire output must be in plain markdown (using ** for bold, # for headers, - for lists, etc.). DO NOT include any introductory or concluding comments outside the article text.`;
+            
+            // Pass the entire structure/outline to the model as the prompt
+            const prompt = `Write a 1,500-2,000 word article based on the following title and structure. Title: "${selectedTopic.title}". Structure:\n\n---\n${selectedStructure}\n---`;
+
+            try {
+                const draftText = await apiCall(prompt, 'draft', systemPrompt);
+                document.getElementById('draftContent').innerHTML = renderMarkdown(draftText);
+                
+            } catch (error) {
+                showError(`🚨 Draft Generation Error: ${error.message}.`);
+                document.getElementById('draftContent').innerHTML = `<p class="text-red-600">Failed to generate draft. ${error.message}</p>`;
+            } finally {
+                hideLoading(true);
+            }
+        }
+
+        // --- UI UTILITIES ---
+
+        function showView(view) {
+            document.getElementById('structureView').classList.add('hidden');
+            document.getElementById('draftView').classList.add('hidden');
+            document.getElementById('structureTab').classList.remove('border-cyan-600', 'text-cyan-600');
+            document.getElementById('draftTab').classList.remove('border-cyan-600', 'text-cyan-600');
+            document.getElementById('structureTab').classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700');
+            document.getElementById('draftTab').classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700');
+
+            if (view === 'structure') {
+                document.getElementById('structureView').classList.remove('hidden');
+                document.getElementById('structureTab').classList.add('border-cyan-600', 'text-cyan-600');
+                document.getElementById('structureTab').classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700');
+                document.getElementById('structureTab').classList.add('active');
+                document.getElementById('draftTab').classList.remove('active');
+            } else if (view === 'draft') {
+                document.getElementById('draftView').classList.remove('hidden');
+                document.getElementById('draftTab').classList.add('border-cyan-600', 'text-cyan-600');
+                document.getElementById('draftTab').classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700');
+                document.getElementById('draftTab').classList.add('active');
+                document.getElementById('structureTab').classList.remove('active');
+            }
+        }
+
+        // Simple markdown to HTML conversion (for displaying output cleanly)
+        function renderMarkdown(markdown) {
+            let html = markdown || '';
+            
+            // Replace headers
+            html = html.replace(/^###\s*(.*)$/gm, '</h3><h4>$1</h4>'); // H4 for H3 in outline
+            html = html.replace(/^##\s*(.*)$/gm, '</h3><h3 class="text-xl font-bold mt-6 mb-3 text-slate-800">$1</h3>'); // H3 for H2
+            
+            // Replace lists (simple bullets)
+            html = html.replace(/^- (.*)$/gm, '<li class="ml-4 list-disc">$1</li>');
+            html = html.replace(/<li class="ml-4 list-disc">[\s\S]*?<\/li>/g, function(match) {
+                if (match.includes('<ul')) return match; // Avoid double nesting if nested lists were already processed
+                return '<ul class="list-inside mb-4 space-y-1">' + match + '</ul>';
+            });
+            
+            // Bold text
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Ensure paragraphs are wrapped
+            html = html.split('\n\n').map(p => {
+                const trimmed = p.trim();
+                if (trimmed && !trimmed.startsWith('<h') && !trimmed.startsWith('<ul') && !trimmed.startsWith('<div')) {
+                    return `<p class="mb-4">${trimmed}</p>`;
+                }
+                return p;
+            }).join('\n');
+            
+            // Clean up potentially empty tags or extra newlines
+            return html.replace(/<p class="mb-4">\s*<\/p>/g, '').trim();
+        }
+
+        window.copyToClipboard = function(format) {
             if (!generatedData.length) return;
             let text = "";
             if (format === 'json') {
                 text = JSON.stringify(generatedData, null, 2);
             } else {
-                text = "Title,Slug,Meta Description,Difficulty,Volume,Category\n";
+                // CSV format
+                text = "Title,Slug,Meta Description,Difficulty,Volume\n";
                 generatedData.forEach(d => {
-                    // Simple CSV escaping for quotes
-                    text += `"${d.title.replace(/"/g,'""')}",${d.slug},"${d.meta.replace(/"/g,'""')}",${d.difficulty},${d.volume},${d.category}\n`;
+                    // Basic CSV sanitation: wrap fields in quotes and escape internal quotes
+                    text += `"${d.title.replace(/"/g,'""')}",${d.slug},"${d.meta.replace(/"/g,'""')}",${d.difficulty},${d.volume}\n`;
                 });
             }
-            // Using execCommand for compatibility in sandboxed environments
-            const tempInput = document.createElement("textarea");
-            tempInput.value = text;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            alert(`Copied to clipboard as ${format.toUpperCase()}!`);
-        };
+
+            try {
+                // Use execCommand('copy') for better compatibility in iframe environments
+                const tempTextArea = document.createElement('textarea');
+                tempTextArea.value = text;
+                document.body.appendChild(tempTextArea);
+                tempTextArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempTextArea);
+                
+                // Simple visual confirmation
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = "Copied!";
+                setTimeout(() => { btn.textContent = originalText; }, 1500);
+
+            } catch (err) {
+                showError('Failed to copy text. Please copy manually from the console.');
+                console.warn('Could not copy automatically. Data:', text);
+            }
+        }
+        
+        // Initial setup check
+        document.addEventListener('DOMContentLoaded', () => {
+            const audienceInput = document.getElementById('audience');
+            const keywordsInput = document.getElementById('keywords');
+            const button = document.getElementById('generateTopicsBtn');
+            
+            function checkInputs() {
+                if (audienceInput.value.trim() && keywordsInput.value.trim()) {
+                    button.disabled = false;
+                } else {
+                    button.disabled = true;
+                }
+            }
+
+            audienceInput.addEventListener('input', checkInputs);
+            keywordsInput.addEventListener('input', checkInputs);
+            
+            checkInputs(); // Run on load
+        });
+
     </script>
 </body>
 </html>
