@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Prompt Generator</title>
+    <title>SEO Content Studio: Topic & Structure Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
+    <!-- ✅ STABLE SDK IMPORT: Using importmap for reliability -->
     <script type="importmap">
       {
         "imports": {
@@ -17,543 +19,516 @@
     </script>
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        /* 🎨 THEME: Lovable Teal/Cyan Gradient */
         .hero-bg {
-            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); /* Indigo to Cyan */
+            background: linear-gradient(135deg, #0f766e 0%, #0ea5e9 100%);
             position: relative;
             overflow: hidden;
         }
+        
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 60%);
+            pointer-events: none;
+        }
 
-        .loader { border-top-color: #06b6d4; -webkit-animation: spin 1s ease-in-out infinite; animation: spin 1s ease-in-out infinite; }
+        .loader { border-top-color: #0ea5e9; -webkit-animation: spin 1s ease-in-out infinite; animation: spin 1s ease-in-out infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Output Box Styling */
-        .prompt-output {
+        .input-card {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+
+        /* Style for the JSON output display */
+        .json-output {
             background-color: #1e293b; 
             color: #e2e8f0; 
             padding: 1.5rem; 
             border-radius: 0.75rem; 
             font-family: 'Consolas', 'Monaco', monospace; 
+            overflow-x: auto;
             white-space: pre-wrap;
             word-wrap: break-word;
-            line-height: 1.6;
-            min-height: 150px;
-            overflow-x: auto;
+            line-height: 1.4;
         }
+        
+        /* Content Draft Styles */
+        #contentDraft { font-family: 'Inter', sans-serif; color: #334155; line-height: 1.7; }
+        #contentDraft h1 { font-size: 2em; font-weight: 700; color: #0f172a; margin-top: 0.5em; margin-bottom: 0.5em; }
+        #contentDraft h2 { font-size: 1.5em; font-weight: 600; color: #1e293b; margin-top: 1.5em; margin-bottom: 0.5em; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.2em; }
+        #contentDraft h3 { font-size: 1.25em; font-weight: 600; color: #334155; margin-top: 1.2em; margin-bottom: 0.5em; }
+        #contentDraft p { margin-bottom: 1em; }
+        #contentDraft ul, #contentDraft ol { margin-bottom: 1em; padding-left: 1.5em; list-style-type: disc; }
+        #contentDraft li { margin-bottom: 0.3em; }
+        #contentDraft strong { color: #0f172a; font-weight: 600; }
+        #contentDraft blockquote { border-left: 4px solid #0ea5e9; padding-left: 1em; font-style: italic; color: #475569; background: #f1f5f9; padding: 0.5em 1em; border-radius: 0 4px 4px 0; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col text-slate-800">
 
-    <div class="hero-bg text-white pt-16 pb-24 px-4 text-center">
+    <!-- HERO SECTION -->
+    <div class="hero-bg text-white pt-20 pb-32 px-4 text-center">
         <div class="max-w-4xl mx-auto relative z-10">
-            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">Master Prompt Generator</h1>
-            <p class="text-xl text-indigo-100 opacity-90 max-w-2xl mx-auto font-light">
-                Generate high-quality, structured prompts for any objective.
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">SEO Content Studio</h1>
+            <p class="text-xl md:text-2xl text-teal-50 opacity-90 max-w-2xl mx-auto font-light mb-8">
+                Generate topics, metadata, outlines, and **full content drafts**.
             </p>
+            <p class="text-sm text-cyan-100 uppercase tracking-widest font-semibold">Powered by Gemini 2.5 Pro</p>
         </div>
     </div>
 
-    <div class="max-w-4xl mx-auto px-4 -mt-16 relative z-20 pb-20 space-y-10">
+    <!-- MAIN APP CONTAINER -->
+    <div class="max-w-6xl mx-auto px-4 -mt-20 relative z-20 pb-20 space-y-12">
         
-        <div class="bg-white rounded-xl shadow-2xl p-8 md:p-10 border border-slate-200">
-            <h2 class="text-2xl font-bold mb-6 text-slate-800">Define Your Prompt Objective</h2>
-            
-            <div class="space-y-6">
+        <!-- INPUT CARD -->
+        <div class="bg-white rounded-2xl input-card p-8 md:p-10 border border-slate-200 relative overflow-hidden">
+            <div class="relative z-10">
                 
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2" for="templateSelect">Prompt Template (Optional)</label>
-                    <select id="templateSelect" onchange="useTemplate()" 
-                        class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
-                        <option value="custom">-- Start from Scratch (AI Generated) --</option>
-                        <option value="blog">SEO Blog Post Generator</option>
-                        <option value="python">Python Function Generator</option>
-                        <option value="marketing">Marketing Email Campaign</option>
-                    </select>
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                    
+                    <!-- Seed Keyword Input -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-semibold text-slate-600 mb-2">Seed Topic / Keyword</label>
+                        <input type="text" id="seedKeyword" placeholder="e.g. Vintage Mechanical Keyboards" 
+                               class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition bg-slate-50 text-slate-800 placeholder-slate-400">
+                    </div>
 
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2" for="targetGoal">
-                        What is the final goal of your content/code? (The core output)
-                    </label>
-                    <textarea id="targetGoal" rows="3" placeholder="e.g. Write a 500-word blog post about the benefits of using Svelte over React."
-                           class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition bg-slate-50 text-slate-800"></textarea>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="category">Category/Domain</label>
-                        <select id="category" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
-                            <option value="Marketing Copy">Marketing Copy</option>
-                            <option value="Coding/Development">Coding/Development</option>
-                            <option value="Creative Writing">Creative Writing</option>
-                            <option value="Educational Content">Educational Content</option>
-                            <option value="Technical Documentation">Technical Documentation</option>
+                    <!-- Content Angle Selector -->
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-semibold text-slate-600 mb-2">Content Angle</label>
+                        <select id="contentFilter" class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none bg-slate-50 text-slate-700 cursor-pointer">
+                            <option value="mixed">Mix of All (High-Value)</option>
+                            <option value="How-To Guide">How-To Guides / Tutorials</option>
+                            <option value="Listicle">Listicles (Top X)</option>
+                            <option value="Commercial">Commercial / Reviews</option>
+                            <option value="Informational">Informational / Explainer</option>
                         </select>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="tone">Tone/Voice</label>
-                        <select id="tone" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
-                            <option value="Professional and Authoritative">Professional & Authoritative</option>
-                            <option value="Casual and Engaging">Casual & Engaging</option>
-                            <option value="Technical and Precise">Technical & Precise</option>
-                            <option value="Humorous and Lighthearted">Humorous & Lighthearted</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="detailLevel">Detail Level</label>
-                        <select id="detailLevel" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
-                            <option value="Concise and Direct">Concise (Under 200 words/50 lines)</option>
-                            <option value="Detailed and Thorough">Detailed (Standard length)</option>
-                            <option value="Exhaustive and In-depth">Exhaustive (Maximum detail)</option>
-                        </select>
+                    <!-- Generate Button -->
+                    <div class="md:col-span-1">
+                        <button onclick="generateContentPlan()" id="generateButton"
+                                class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold rounded-xl transition shadow-lg flex justify-center items-center gap-2">
+                            <span>Generate Topics</span>
+                        </button>
                     </div>
                 </div>
-
-                <button onclick="generateMasterPrompt()" id="generateButton"
-                        class="w-full py-4 mt-4 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-700 hover:to-cyan-600 text-white font-bold rounded-lg transition shadow-lg flex justify-center items-center gap-2">
-                    <span>Generate Master Prompt</span>
-                </button>
-
-                <div id="errorMsg" class="hidden mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm text-center border border-red-100 font-medium"></div>
+                <!-- Error Message Box -->
+                <div id="errorMsg" class="hidden mt-4 p-4 bg-red-50 text-red-600 rounded-xl text-sm text-center border border-red-100 font-medium"></div>
             </div>
         </div>
 
-        <div id="outputSection" class="hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-slate-800">Master Prompt Output</h2>
-                <button onclick="copyToClipboard('finalPrompt')" class="text-xs font-bold px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition">Copy to Clipboard</button>
+        <!-- RESULTS SECTION -->
+        <div id="resultsSection" class="hidden space-y-12">
+            <!-- Loading Topics -->
+            <div id="loadingIndicator" class="hidden text-center py-12">
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-12 w-12 mx-auto mb-4"></div>
+                <p class="text-slate-600 font-medium animate-pulse">Analyzing search intent and competition...</p>
+            </div>
+
+            <!-- Table -->
+            <div id="resultsContainer" class="hidden bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-700">Generated Strategy</h3>
+                    <div class="flex gap-2">
+                        <button onclick="copyToClipboard('csv')" class="text-xs font-bold px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition">Export CSV</button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <!-- Table Head -->
+                        <thead id="resultsHead" class="bg-slate-100 text-xs uppercase text-slate-500 font-bold tracking-wider">
+                            <tr>
+                                <th class="p-5 border-b w-1/4">Title & URL Slug</th>
+                                <th class="p-5 border-b w-1/4">Meta Description</th>
+                                <th class="p-5 border-b w-1/6">Difficulty</th>
+                                <th class="p-5 border-b w-1/6">Volume</th>
+                                <th class="p-5 border-b w-1/6">Action</th> 
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody" class="divide-y divide-slate-100 text-sm text-slate-700 bg-white">
+                            <!-- JS Injection -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
             
-            <pre id="finalPrompt" class="prompt-output"></pre>
+            <!-- STRUCTURE OUTPUT SECTION -->
+            <div id="structureSection" class="hidden w-full mb-10">
+                <h2 class="text-3xl font-extrabold text-slate-900 mb-6">Content Outline & Draft for: <span id="outlineTopic" class="text-indigo-600"></span></h2>
+                
+                <!-- Loading Indicator for Structure -->
+                <div id="structureLoading" class="hidden w-full text-center py-8 bg-white rounded-xl shadow border border-slate-200">
+                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-8 w-8 mx-auto mb-3"></div>
+                    <p id="structureLoadingText" class="text-slate-600 font-medium">Generating detailed SEO content structure...</p>
+                </div>
+
+                <!-- JSON Output Display (Outline) -->
+                <div id="jsonStructureContainer" class="relative hidden mb-8">
+                     <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xl font-bold text-slate-800">Step 1: Structured Outline</h3>
+                        <div class="flex gap-2">
+                            <button onclick="copyJsonStructure()" class="bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold py-2 px-4 rounded-lg transition">
+                                Copy JSON Outline
+                            </button>
+                            <button onclick="generateDraftFromOutline()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                Generate Full Draft
+                            </button>
+                        </div>
+                    </div>
+                    <pre id="jsonStructure" class="json-output"></pre>
+                </div>
+
+                <!-- DRAFT OUTPUT SECTION (NEW) -->
+                <div id="draftContainer" class="relative hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-slate-800">Step 2: First Draft</h3>
+                        <button onclick="copyDraft()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs font-bold py-2 px-4 rounded-lg transition">
+                            Copy Draft
+                        </button>
+                    </div>
+                    <div id="contentDraft" class="bg-white p-8 rounded-2xl shadow-xl border border-slate-200 prose prose-lg max-w-none">
+                        <!-- Draft content injected here -->
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <div id="loadingIndicator" class="hidden text-center py-8">
-            <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-300 h-10 w-10 mx-auto mb-4"></div>
-            <p class="text-slate-600 font-medium animate-pulse">Assembling context and parameters into a Master Prompt...</p>
-        </div>
     </div>
 
+    <!-- JAVASCRIPT LOGIC -->
     <script type="module">
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // 🛑 PASTE YOUR NEW KEY BELOW 🛑
-        const API_KEY = "AIzaSyAnzpQmKSWSlzwTwtCTHnIDpMv3fd6_Wis"; 
+        // 🛑 CRITICAL: USE ENVIRONMENT VARIABLE FOR PRODUCTION 🛑
+        // For security, the key should be loaded via a Vercel Serverless Function/Proxy 
+        // OR dynamically injected during a build process, NOT hardcoded here.
+        const API_KEY = ""; // Key removed for security and public repo compatibility.
         
-        let ai;
-        // ✅ FIXED: Using the most stable model name
-        const modelName = 'gemini-1.5-flash'; 
-
-        // --- JSON Schema ---
-        const PROMPT_OUTPUT_SCHEMA = {
-            type: "object",
-            properties: {
-                finalPrompt: { type: "string" },
-                role: { type: "string" }
-            },
-            required: ["finalPrompt", "role"]
-        };
-        
-        // --- Templates ---
-        const TEMPLATES = {
-            custom: { goal: "", category: "Marketing Copy", tone: "Professional and Authoritative", detail: "Detailed and Thorough" },
-            blog: { goal: "Generate a detailed blog post outline about 'Future of AI'.", category: "Marketing Copy", tone: "Professional and Authoritative", detail: "Exhaustive and In-depth" },
-            python: { goal: "Write a Python function to parse CSV files.", category: "Coding/Development", tone: "Technical and Precise", detail: "Detailed and Thorough" },
-            marketing: { goal: "Draft a 3-part email launch sequence.", category: "Marketing Copy", tone: "Casual and Engaging", detail: "Detailed and Thorough" }
-        };
-
-        window.useTemplate = function() {
-            const template = TEMPLATES[document.getElementById('templateSelect').value] || TEMPLATES.custom;
-            document.getElementById('targetGoal').value = template.goal;
-            document.getElementById('category').value = template.category;
-            document.getElementById('tone').value = template.tone;
-            document.getElementById('detailLevel').value = template.detail;
-        };
-
-        window.generateMasterPrompt = async function() {
-            const goal = document.getElementById('targetGoal').value.trim();
-            const category = document.getElementById('category').value;
-            const tone = document.getElementById('tone').value;
-            const detailLevel = document.getElementById('detailLevel').value;
-            
-            const btn = document.getElementById('generateButton');
-            const loader = document.getElementById('loadingIndicator');
-            const outputSection = document.getElementById('outputSection');
-            const error = document.getElementById('errorMsg');
-
-            error.classList.add('hidden');
-            outputSection.classList.add('hidden');
-            
-            if (goal.length < 5) { showError("Please enter a goal."); return; }
-            
-            // Initialize Check
-            if (!ai) { 
-                try {
-                    ai = new GoogleGenerativeAI(API_KEY); 
-                } catch (e) {
-                    showError("Failed to initialize AI. Check console.");
-                    return;
-                }
-            }
-
-            btn.disabled = true;
-            btn.classList.add('opacity-75', 'cursor-not-allowed');
-            loader.classList.remove('hidden');
-
-            const metaPrompt = `
-                Act as a Master Prompt Engineer. Convert the user's goal into a high-quality, structured prompt.
-                User Goal: "${goal}"
-                Category: ${category}
-                Tone: ${tone}
-                Detail Level: ${detailLevel}
-                
-                Output strictly valid JSON: { "finalPrompt": "...", "role": "..." }
-            `;
-
-            try {
-                const model = ai.getGenerativeModel({
-                    model: modelName,
-                    generationConfig: { responseMimeType: "application/json" }
-                });
-
-                const result = await model.generateContent(metaPrompt);
-                
-                if (!result.text) throw new Error("Empty response from API.");
-
-                const structuredOutput = JSON.parse(result.text());
-                document.getElementById('finalPrompt').textContent = structuredOutput.finalPrompt;
-                outputSection.classList.remove('hidden');
-
-            } catch (e) {
-                console.error(e);
-                showError("API Error: " + (e.message || "Unknown error"));
-            } finally {
-                btn.disabled = false;
-                btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                loader.classList.add('hidden');
-            }
-        };
-
-        function showError(msg) {
-            const el = document.getElementById('errorMsg');
-            el.textContent = msg;
-            el.classList.remove('hidden');
-        }
-
-        window.copyToClipboard = function(elementId) {
-            const text = document.getElementById(elementId).textContent;
-            navigator.clipboard.writeText(text).then(() => alert("Copied!"));
-        };
-        
-        document.addEventListener('DOMContentLoaded', () => useTemplate());
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Prompt Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai"
-        }
-      }
-    </script>
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
-        .hero-bg {
-            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); /* Indigo to Cyan */
-            position: relative;
-            overflow: hidden;
-        }
-
-        .loader { border-top-color: #06b6d4; -webkit-animation: spin 1s ease-in-out infinite; animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Output Box Styling */
-        .prompt-output {
-            background-color: #1e293b; 
-            color: #e2e8f0; 
-            padding: 1.5rem; 
-            border-radius: 0.75rem; 
-            font-family: 'Consolas', 'Monaco', monospace; 
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.6;
-            min-height: 150px;
-            overflow-x: auto;
-        }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col text-slate-800">
-
-    <div class="hero-bg text-white pt-16 pb-24 px-4 text-center">
-        <div class="max-w-4xl mx-auto relative z-10">
-            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">Master Prompt Generator</h1>
-            <p class="text-xl text-indigo-100 opacity-90 max-w-2xl mx-auto font-light">
-                Generate high-quality, structured prompts for any objective.
-            </p>
-        </div>
-    </div>
-
-    <div class="max-w-4xl mx-auto px-4 -mt-16 relative z-20 pb-20 space-y-10">
-        
-        <div class="bg-white rounded-xl shadow-2xl p-8 md:p-10 border border-slate-200">
-            <h2 class="text-2xl font-bold mb-6 text-slate-800">Define Your Prompt Objective</h2>
-            
-            <div class="space-y-6">
-                
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2" for="templateSelect">Prompt Template (Optional)</label>
-                    <select id="templateSelect" onchange="useTemplate()" 
-                        class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
-                        <option value="custom">-- Start from Scratch (AI Generated) --</option>
-                        <option value="blog">SEO Blog Post Generator</option>
-                        <option value="python">Python Function Generator</option>
-                        <option value="marketing">Marketing Email Campaign</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-2" for="targetGoal">
-                        What is the final goal of your content/code? (The core output)
-                    </label>
-                    <textarea id="targetGoal" rows="3" placeholder="e.g. Write a 500-word blog post about the benefits of using Svelte over React."
-                           class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 outline-none transition bg-slate-50 text-slate-800"></textarea>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="category">Category/Domain</label>
-                        <select id="category" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
-                            <option value="Marketing Copy">Marketing Copy</option>
-                            <option value="Coding/Development">Coding/Development</option>
-                            <option value="Creative Writing">Creative Writing</option>
-                            <option value="Educational Content">Educational Content</option>
-                            <option value="Technical Documentation">Technical Documentation</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="tone">Tone/Voice</label>
-                        <select id="tone" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
-                            <option value="Professional and Authoritative">Professional & Authoritative</option>
-                            <option value="Casual and Engaging">Casual & Engaging</option>
-                            <option value="Technical and Precise">Technical & Precise</option>
-                            <option value="Humorous and Lighthearted">Humorous & Lighthearted</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-2" for="detailLevel">Detail Level</label>
-                        <select id="detailLevel" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-indigo-500 outline-none bg-white text-slate-700 cursor-pointer">
-                            <option value="Concise and Direct">Concise (Under 200 words/50 lines)</option>
-                            <option value="Detailed and Thorough">Detailed (Standard length)</option>
-                            <option value="Exhaustive and In-depth">Exhaustive (Maximum detail)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button onclick="generateMasterPrompt()" id="generateButton"
-                        class="w-full py-4 mt-4 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-700 hover:to-cyan-600 text-white font-bold rounded-lg transition shadow-lg flex justify-center items-center gap-2">
-                    <span>Generate Master Prompt</span>
-                </button>
-
-                <div id="errorMsg" class="hidden mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm text-center border border-red-100 font-medium"></div>
-            </div>
-        </div>
-
-        <div id="outputSection" class="hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-slate-800">Master Prompt Output</h2>
-                <button onclick="copyToClipboard('finalPrompt')" class="text-xs font-bold px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition">Copy to Clipboard</button>
-            </div>
-            
-            <pre id="finalPrompt" class="prompt-output"></pre>
-        </div>
-
-        <div id="loadingIndicator" class="hidden text-center py-8">
-            <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-300 h-10 w-10 mx-auto mb-4"></div>
-            <p class="text-slate-600 font-medium animate-pulse">Assembling context and parameters into a Master Prompt...</p>
-        </div>
-    </div>
-
-    <script type="module">
-        import { GoogleGenerativeAI } from "@google/generative-ai";
-	const API_KEY = "AIzaSyAnzpQmKSWSlzwTwtCTHnIDpMv3fd6_Wis"; 
-        
+        let generatedData = [];
+        let currentOutlineJSON = null; // Store outline for drafting
         let ai;
         const modelName = 'gemini-2.5-pro'; 
 
-        // --- JSON Schema for Output Prompt ---
-        const PROMPT_OUTPUT_SCHEMA = {
-            type: "object",
-            properties: {
-                finalPrompt: { 
-                    type: "string", 
-                    description: "The complete, polished, and ready-to-use master prompt string." 
+        // --- 1. JSON Schema for Topic Generation ---
+        const contentSchema = {
+            type: "array",
+            items: {
+                type: "object",
+                properties: {
+                    title: { type: "string", description: "A compelling, high-value, SEO-optimized content title." },
+                    slug: { type: "string", description: "The URL slug, converted to kebab-case (e.g., 'ultimate-guide-to-seo')." },
+                    meta: { type: "string", description: "A concise, actionable meta description (under 160 characters) to drive clicks." },
+                    difficulty: { type: "string", description: "Estimated SEO Difficulty (Low, Medium, High)" },
+                    volume: { type: "string", description: "Estimated Search Volume (e.g., '1k-5k/mo', 'Low', 'High')" },
+                    category: { type: "string", description: "The content angle/category (e.g., How-To Guide, Listicle, Commercial, Informational)." }
                 },
-                role: {
-                    type: "string",
-                    description: "The expert persona/role assigned in the prompt (e.g., 'Senior Content Strategist', 'Full-Stack Developer')."
-                }
-            },
-            required: ["finalPrompt", "role"]
-        };
-        
-        // --- Pre-defined Prompt Templates ---
-        const TEMPLATES = {
-            custom: { goal: "", category: "Marketing Copy", tone: "Professional and Authoritative", detail: "Detailed and Thorough" },
-            blog: { 
-                goal: "Generate a detailed outline and first 300 words for a blog post targeting the key phrase 'Future of AI in Content Marketing'. The post should be structured for SEO, including H2/H3 tags, and feature a clear call to action.", 
-                category: "Marketing Copy", 
-                tone: "Professional and Authoritative", 
-                detail: "Exhaustive and In-depth" 
-            },
-            python: { 
-                goal: "Write a complete, tested Python class for converting JSON data into a CSV file, handling nested structures gracefully. Include a brief usage example.", 
-                category: "Coding/Development", 
-                tone: "Technical and Precise", 
-                detail: "Detailed and Thorough" 
-            },
-            marketing: { 
-                goal: "Draft a three-part email sequence (Awareness, Consideration, Conversion) to launch a new productivity software product to a cold audience. Focus on clear value propositions and strong CTAs.", 
-                category: "Marketing Copy", 
-                tone: "Casual and Engaging", 
-                detail: "Detailed and Thorough" 
+                required: ["title", "slug", "meta", "difficulty", "volume", "category"]
             }
         };
 
-        // --- Template Selector Handler ---
-        window.useTemplate = function() {
-            const templateId = document.getElementById('templateSelect').value;
-            const template = TEMPLATES[templateId] || TEMPLATES.custom;
-            
-            // Populate fields based on the selected template
-            document.getElementById('targetGoal').value = template.goal;
-            document.getElementById('category').value = template.category;
-            document.getElementById('tone').value = template.tone;
-            document.getElementById('detailLevel').value = template.detail;
+        // --- 2. JSON Schema for Structure Generation ---
+        const STRUCTURE_SCHEMA = {
+            type: "object",
+            properties: {
+                target_topic: { type: "string", description: "The final, most compelling H1 title." },
+                sections: {
+                    type: "array",
+                    description: "4-6 highly relevant H2 sections with detailed H3 subpoints and SEO recommendations.",
+                    items: {
+                        type: "object",
+                        properties: {
+                            h2: { type: "string", description: "The H2 section title." },
+                            h3_subpoints: { 
+                                type: "array", 
+                                description: "2-3 highly specific H3 subpoints that fully cover the search intent for this H2.", 
+                                items: { type: "string" } 
+                            },
+                            primary_intent: { type: "string", description: "The primary search intent for this section (Informational, Commercial, Transactional)." },
+                            keywords: { 
+                                type: "array", 
+                                description: "Recommended long-tail keyword clusters for this section (3-5 phrases).", 
+                                items: { type: "string" } 
+                            },
+                            link_strategy: {
+                                type: "object",
+                                properties: {
+                                    internal: { type: "string", description: "Suggested anchor text and topic for one internal link." },
+                                    external: { type: "string", description: "Suggested topic/authority site to reference as an external link." }
+                                },
+                                required: ["internal", "external"]
+                            }
+                        },
+                        required: ["h2", "h3_subpoints", "primary_intent", "keywords", "link_strategy"]
+                    }
+                },
+                conclusion_cta: { type: "string", description: "A strong, single-sentence call-to-action suggestion for the end of the post." }
+            },
+            required: ["target_topic", "sections", "conclusion_cta"]
         };
 
 
-        // --- Core Generation Function ---
-        window.generateMasterPrompt = async function() {
-            const goal = document.getElementById('targetGoal').value.trim();
-            const category = document.getElementById('category').value;
-            const tone = document.getElementById('tone').value;
-            const detailLevel = document.getElementById('detailLevel').value;
-            
+        // --- Core Content Generation (Topics/Metadata) ---
+        window.generateContentPlan = async function() {
+            const seed = document.getElementById('seedKeyword').value.trim();
+            const filter = document.getElementById('contentFilter').value;
             const btn = document.getElementById('generateButton');
+            const resultsSection = document.getElementById('resultsSection');
             const loader = document.getElementById('loadingIndicator');
-            const outputSection = document.getElementById('outputSection');
-            const outputDiv = document.getElementById('finalPrompt');
+            const container = document.getElementById('resultsContainer');
             const error = document.getElementById('errorMsg');
+            const structureSection = document.getElementById('structureSection');
 
             // Reset UI
             error.classList.add('hidden');
-            outputSection.classList.add('hidden');
-            outputDiv.textContent = '';
+            structureSection.classList.add('hidden'); 
             
-            // Validation
-            if (goal.length < 10) { 
-                showError("Please describe your goal in more detail (at least 10 characters)."); 
-                return; 
+            // Initialization
+            if (!ai) {
+                try { 
+                    ai = new GoogleGenerativeAI(API_KEY); 
+                } catch (e) { 
+                    showError("Failed to initialize AI. Check console for details."); 
+                    return; 
+                }
             }
-            if (API_KEY === "YOUR_NEW_GEMINI_API_KEY_HERE" || API_KEY.length < 30) {
-                 showError("🚨 Critical Error: Please set a valid Gemini API Key in the script.");
+            
+            // API Key Check
+            if (API_KEY.length < 5) {
+                 showError("🚨 Critical Error: API Key is missing. Please set your Gemini API Key in the JavaScript code for local testing or use a Vercel Serverless Function/Proxy for secure production deployment.");
                  return;
             }
 
-            // Initialization
-            if (!ai) { ai = new GoogleGenerativeAI(API_KEY); }
+            if (seed.length < 2) { showError("Please enter a valid topic."); return; }
 
             // UI Loading
             btn.disabled = true;
-            btn.innerHTML = '<div class="loader ease-linear rounded-full border-4 border-t-4 border-white h-5 w-5"></div> Assembling...';
+            btn.innerHTML = '<div class="loader ease-linear rounded-full border-4 border-t-4 border-white h-5 w-5"></div> Generating...';
             btn.classList.add('opacity-75', 'cursor-not-allowed');
+            resultsSection.classList.remove('hidden');
             loader.classList.remove('hidden');
+            container.classList.add('hidden');
+            generatedData = [];
 
-            // --- Construct the Meta-Prompt for the Gemini Model ---
-            const metaPrompt = `
-                You are a Master Prompt Generator. Your task is to take a user's simple objective and transform it into a highly effective, structured, and detailed master prompt that an AI model can use to produce superior output.
+            // Prompt
+            let promptAngle = filter === 'mixed' ?
+            "a mix of angles (How-to, Commercial, Listicle)" : `exclusively "${filter}" style content`;
+            const prompt = `Generate 10 high-value, SEO-optimized content topics for the keyword: "${seed}".
+            Focus on ${promptAngle}.
+            For each topic, estimate the SEO Difficulty (Low/Medium/High) and potential Search Volume based on general niche knowledge.`;
+            const systemInstruction = `You are an expert SEO Strategist. 
+            Output strictly a JSON array based on the schema provided.
+            Ensure titles are click-worthy and meta descriptions are actionable.`;
 
-                Follow these steps:
-                1. **Assign a Role:** Based on the Category: "${category}", assign an expert persona (e.g., Senior Content Strategist, Full-Stack Python Developer).
-                2. **Establish Context:** Define the task and clearly state the user's objective: "${goal}".
-                3. **Apply Constraints:** Enforce the following parameters:
-                   - **Tone:** The output MUST adopt a "${tone}" tone.
-                   - **Detail/Length:** The output MUST be "${detailLevel}" in detail.
-                   - **Format:** If applicable, explicitly state the required output format (e.g., Markdown, JSON, Python Code Block).
-                4. **Add Success Criteria:** Include a final instruction (e.g., "Review your output to ensure it directly solves the objective and meets all constraints.").
-
-                Generate ONLY the final master prompt string and the assigned role, formatted strictly as the requested JSON schema.
-            `;
 
             try {
                 const model = ai.getGenerativeModel({
                     model: modelName,
+                    systemInstruction: systemInstruction,
                     generationConfig: {
                         responseMimeType: "application/json",
-                        responseSchema: PROMPT_OUTPUT_SCHEMA,
-                        temperature: 0.5 
+                        responseSchema: contentSchema,
+                        temperature: 0.7
                     }
                 });
 
-                const result = await model.generateContent(metaPrompt);
+                const result = await model.generateContent(prompt);
                 
-                // Check for an empty response
                 if (!result.text || result.text.trim().length < 5) {
-                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].finishReason === 'SAFETY') {
-                        throw new Error("Content generation was blocked by safety settings. Try simplifying your goal.");
-                    }
-                    throw new Error("Received an empty response from the API. Your key may be invalid or your network may be blocking the request (e.g., corporate firewall/VPN).");
+                   throw new Error("Received an empty response from the API. Please ensure your API key is valid.");
                 }
-
-                // --- CRITICAL FIX: Robust JSON Extraction ---
+                
                 let rawText = result.text.trim();
                 
-                // 1. Remove markdown code block delimiters
+                // Robustly clean and find the JSON array
                 if (rawText.startsWith('```')) {
                     rawText = rawText.replace(/```(json)?\s*/i, '').trim();
                     rawText = rawText.replace(/```\s*$/, '').trim();
                 }
+
+                const startIndex = rawText.indexOf('[');
+                const endIndex = rawText.lastIndexOf(']');
                 
-                // 2. Find the bounding curly braces { }
+                if (startIndex === -1 || endIndex === -1) {
+                    throw new Error("JSON parsing failed. The model did not return a complete JSON array [].");
+                }
+                
+                const cleanJsonText = rawText.substring(startIndex, endIndex + 1);
+                const apiTopics = JSON.parse(cleanJsonText);
+                
+                generatedData = apiTopics.map(item => ({
+                    title: item.title,
+                    slug: cleanSlug(item.slug || item.title),
+                    meta: item.meta,
+                    difficulty: item.difficulty,
+                    volume: item.volume,
+                    category: item.category
+                }));
+
+                renderTable();
+
+            } catch (e) {
+                console.error("Gemini Topic API Call Failed:", e);
+                let msg = e.message || "Unknown error occurred.";
+                if (msg.includes("400")) msg = "The API call failed (Bad Request). This often means an **invalid API key**.";
+                if (msg.includes("JSON")) msg = "JSON parsing failed. The model did not return a perfect JSON object.";
+                showError(`🚨 Topic Generation Error: ${msg}`);
+                container.classList.add('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>Generate Topics</span>';
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                loader.classList.add('hidden');
+                
+                if (generatedData.length > 0) {
+                    container.classList.remove('hidden');
+                }
+            }
+        };
+
+        // --- Structure Generation Function ---
+        window.generateDetailedStructure = async function(topicTitle) {
+            const structureSection = document.getElementById('structureSection');
+            const outlineTopic = document.getElementById('outlineTopic');
+            const structureLoader = document.getElementById('structureLoading');
+            const structureLoaderText = document.getElementById('structureLoadingText');
+            const jsonStructureDiv = document.getElementById('jsonStructure');
+            const jsonContainer = document.getElementById('jsonStructureContainer');
+            const draftContainer = document.getElementById('draftContainer'); 
+            const error = document.getElementById('errorMsg');
+            
+            error.classList.add('hidden');
+            structureSection.classList.remove('hidden');
+            structureLoader.classList.remove('hidden');
+            jsonContainer.classList.add('hidden');
+            draftContainer.classList.add('hidden'); 
+            jsonStructureDiv.textContent = '';
+            outlineTopic.textContent = topicTitle;
+            structureLoaderText.textContent = `Generating detailed SEO content structure for "${topicTitle}"...`;
+
+            const structureSystemInstruction = `You are an expert SEO content strategist and blog architect.
+Given the chosen topic, generate a detailed blog content structure that maximizes SEO value and reader engagement.
+You MUST output STRICTLY a single JSON object that conforms to the provided JSON schema. Do not include any other text, markdown, or commentary.`;
+
+            const structurePrompt = `Chosen topic: "${topicTitle}". Generate the detailed content structure plan.`;
+
+            try {
+                const model = ai.getGenerativeModel({
+                    model: modelName,
+                    systemInstruction: structureSystemInstruction,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: STRUCTURE_SCHEMA,
+                        temperature: 0.7 
+                    }
+                });
+
+                const response = await model.generateContent(structurePrompt);
+                
+                if (!response.text) {
+                    throw new Error("Received an empty response from the API. Check your API key.");
+                }
+                
+                let rawText = response.text.trim();
+                
+                if (rawText.startsWith('```')) {
+                    rawText = rawText.replace(/```(json)?\s*/i, '').trim();
+                    rawText = rawText.replace(/```\s*$/, '').trim();
+                }
+
                 const jsonStart = rawText.indexOf('{');
                 const jsonEnd = rawText.lastIndexOf('}');
                 
-                if (jsonStart === -1 || jsonEnd === -1 || jsonEnd < jsonStart) {
-                    throw new Error("JSON parsing failed. The model output was malformed.");
+                if (jsonStart === -1 || jsonEnd === -1) {
+                    throw new Error("JSON parsing failed. The model did not return a complete JSON object {}.");
                 }
                 
                 const cleanJsonText = rawText.substring(jsonStart, jsonEnd + 1);
-                const structuredOutput = JSON.parse(cleanJsonText);
+                
+                currentOutlineJSON = JSON.parse(cleanJsonText); 
 
-                // Display result
-                document.getElementById('finalPrompt').textContent = structuredOutput.finalPrompt;
-                outputSection.classList.remove('hidden');
+                // Pretty print the JSON for display
+                jsonStructureDiv.textContent = JSON.stringify(currentOutlineJSON, null, 2);
+                jsonContainer.classList.remove('hidden');
 
             } catch (e) {
-                console.error("Gemini API Call Failed:", e);
+                console.error("Gemini Structure API Error:", e);
                 let msg = e.message || "Unknown error occurred.";
-                if (msg.includes("400")) msg = "API Key/Quota Error: Check your key's validity and usage quota on the Google AI Studio dashboard.";
-                showError(`🚨 Prompt Generation Error: ${msg}`);
+                showError(`🚨 Structure API Error: ${msg}`);
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<span>Generate Master Prompt</span>';
-                btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                loader.classList.add('hidden');
+                structureLoader.classList.add('hidden');
             }
-        };
+        }
+
+        // --- NEW: Draft Generation Function ---
+        window.generateDraftFromOutline = async function() {
+            if (!currentOutlineJSON) {
+                showError("No outline found. Please generate an outline first.");
+                return;
+            }
+
+            const structureLoader = document.getElementById('structureLoading');
+            const structureLoaderText = document.getElementById('structureLoadingText');
+            const draftContainer = document.getElementById('draftContainer');
+            const contentDraftDiv = document.getElementById('contentDraft');
+            const error = document.getElementById('errorMsg');
+
+            // UI State for Drafting
+            error.classList.add('hidden');
+            structureLoader.classList.remove('hidden');
+            draftContainer.classList.add('hidden');
+            contentDraftDiv.innerHTML = '';
+            
+            // Custom loading message
+            structureLoaderText.textContent = `Writing full first draft based on the outline... (This may take 10-20 seconds)`;
+
+            const draftSystemInstruction = `You are an expert content writer. 
+            Your task is to write a high-quality, engaging, and SEO-optimized first draft based STRICTLY on the provided JSON outline.
+            Use Markdown formatting (H1, H2, H3, bold, lists, blockquotes) to structure the article perfectly.
+            Tone: Professional yet accessible, authoritative, and helpful.
+            Write the FULL article content now.`;
+
+            const draftPrompt = `Here is the approved content outline in JSON format:
+            ${JSON.stringify(currentOutlineJSON)}
+            
+            Write the complete article draft now. Start with the H1 Title.`;
+
+            try {
+                const model = ai.getGenerativeModel({
+                    model: modelName,
+                    systemInstruction: draftSystemInstruction,
+                    generationConfig: {
+                        temperature: 0.7 
+                    }
+                });
+
+                const response = await model.generateContent(draftPrompt);
+                
+                if (!response.text) {
+                    throw new Error("Received an empty draft response from the API.");
+                }
+
+                const draftMarkdown = response.text;
+                
+                // Convert simple markdown to HTML for display
+                contentDraftDiv.innerHTML = renderMarkdownToHtml(draftMarkdown);
+                draftContainer.classList.remove('hidden');
+
+            } catch (e) {
+                console.error("Gemini Draft API Error:", e);
+                showError(`🚨 Draft Generation Error: ${e.message}`);
+            } finally {
+                structureLoader.classList.add('hidden');
+            }
+        }
 
         // --- Utility Functions ---
 
@@ -563,24 +538,115 @@
             el.classList.remove('hidden');
         }
 
-        window.copyToClipboard = function(elementId) {
-            const textToCopy = document.getElementById(elementId).textContent;
-            if (textToCopy.length < 10) {
-                 alert("Nothing to copy. Please generate a prompt first.");
-                 return;
-            }
-
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                alert("Master Prompt copied to clipboard! 📋");
-            }).catch(err => {
-                console.error('Failed to copy text: ', err);
-                alert('Failed to copy. Please manually select and copy the text.');
-            });
-        };
+        function cleanSlug(str) {
+            return str.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+        }
         
-        // Initialize template on load
-        document.addEventListener('DOMContentLoaded', () => useTemplate());
+        // Enhanced Markdown Renderer for the Draft
+        function renderMarkdownToHtml(markdown) {
+            let html = markdown;
+            
+            // H1, H2, H3
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            
+            // Bold
+            html = html.replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>');
+            
+            // Blockquotes
+            html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+            
+            // Lists (Unordered)
+            html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
+            html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+            // Wrap lists (simple logic)
+            html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+            
+            // Paragraphs (double newline)
+            html = html.replace(/\n\n/g, '<p></p>');
+            
+            // Line breaks (single newline)
+            html = html.replace(/\n/g, '<br />');
+            
+            // Clean up extra BRs inside lists/headers
+            html = html.replace(/<\/h1><br \/>/g, '</h1>');
+            html = html.replace(/<\/h2><br \/>/g, '</h2>');
+            html = html.replace(/<\/h3><br \/>/g, '</h3>');
+            html = html.replace(/<\/ul><br \/>/g, '</ul>');
+            html = html.replace(/<\/li><br \/>/g, '</li>');
+
+            return html;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+
+            generatedData.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 transition";
+                
+                let diffColor = "bg-yellow-100 text-yellow-700";
+                if(item.difficulty && item.difficulty.toLowerCase().includes("low")) diffColor = "bg-green-100 text-green-700";
+                if(item.difficulty && item.difficulty.toLowerCase().includes("high")) diffColor = "bg-red-100 text-red-700";
+
+                row.innerHTML = `
+                    <td class="p-5 align-top">
+                        <div class="font-bold text-slate-800 text-base mb-1">${item.title}</div>
+                        <div class="text-xs font-mono text-cyan-600 bg-cyan-50 inline-block px-2 py-1 rounded">/${item.slug}</div>
+                    </td>
+                    <td class="p-5 align-top text-slate-600 leading-relaxed">${item.meta}</td>
+                    <td class="p-5 align-top">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${diffColor}">${item.difficulty}</span>
+                    </td>
+                    <td class="p-5 align-top text-slate-600 font-medium">${item.volume}</td>
+                    
+                    <!-- Action Button Column -->
+                    <td class="p-5 align-top">
+                        <button onclick="generateDetailedStructure('${item.title.replace(/'/g, "\\'")}')" 
+                                class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-500 rounded-md hover:bg-indigo-600 transition">
+                            Plan Outline
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        window.copyJsonStructure = function() {
+            const jsonText = document.getElementById('jsonStructure').textContent;
+            if (jsonText.length < 10) return;
+            navigator.clipboard.writeText(jsonText).then(() => alert("JSON Outline copied!"));
+        };
+
+        window.copyDraft = function() {
+            const draftHTML = document.getElementById('contentDraft').innerHTML;
+            // Create a temporary element to extract text properly or copy HTML
+            const tempInput = document.createElement("textarea");
+            // For user convenience, we copy the rendered text, but for CMS, HTML might be better. 
+            // Let's stick to innerText for generic use.
+            tempInput.value = document.getElementById('contentDraft').innerText; 
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            alert("Draft content copied to clipboard!");
+        };
+
+        function copyToClipboard(format) {
+            if (!generatedData.length) return;
+            let text = "";
+            if (format === 'json') {
+                text = JSON.stringify(generatedData, null, 2);
+            } else {
+                text = "Title,Slug,Meta Description,Difficulty,Volume\n";
+                generatedData.forEach(d => {
+                    text += `"${d.title.replace(/"/g,'""')}",${d.slug},"${d.meta.replace(/"/g,'""')}",${d.difficulty},${d.volume}\n`;
+                });
+            }
+            navigator.clipboard.writeText(text).then(() => alert(`Copied to clipboard as ${format.toUpperCase()}!`));
+        };
     </script>
 </body>
-
 </html>
