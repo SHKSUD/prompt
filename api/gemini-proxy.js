@@ -1,66 +1,92 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Vercel securely injects the GEMINI_API_KEY environment variable here at runtime
-// This key is NOT visible to the client-side (index.html)
-const API_KEY = process.env.GEMINI_API_KEY;
+// Allow CORS for local testing if needed, though Vercel usually handles same-origin
+export const config = {
+    api: {
+        bodyParser: true,
+    },
+};
 
-// Define the model name being used for generation
-const modelName = 'gemini-2.5-pro'; 
+export default async function handler(request, response) {
+    // 1. Set CORS Headers
+    response.setHeader('Access-Control-Allow-Credentials', true);
+    response.setHeader('Access-Control-Allow-Origin', '*'); // Adjust this in production for security
+    response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    response.setHeader(
+        'Access-Control-Allow-Headers',
+        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    );
 
-// Initialize the AI model (must be done after reading the API_KEY)
-// We rely on Vercel's Node.js environment to handle the import and execution.
-const ai = new GoogleGenerativeAI(API_KEY);
-
-/**
- * Vercel Serverless Function entry point.
- * This function acts as a secure proxy between the client-side HTML and the Gemini API.
- * The client sends the prompt and configuration; the proxy makes the authenticated call.
- */
-export default async function handler(req, res) {
-    // 1. Security Check: Only allow POST requests for generation
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed', message: 'Only POST requests are accepted.' });
+    // 2. Handle OPTIONS request (Preflight)
+    if (request.method === 'OPTIONS') {
+        return response.status(200).end();
     }
 
-    // 2. API Key Check
+    // 3. Validate Request Method
+    if (request.method !== 'POST') {
+        return response.status(405).json({ error: 'Method Not Allowed' });
+    }
+
+    // 4. Check API Key
+    const API_KEY = process.env.GEMINI_API_KEY;
     if (!API_KEY) {
-        console.error("GEMINI_API_KEY is not set in Vercel environment variables.");
-        return res.status(500).json({ 
-            error: 'Server configuration error: API Key missing.', 
-            hint: 'Please ensure GEMINI_API_KEY is set in your Vercel project settings.' 
-        });
+        return response.status(500).json({ error: 'Server configuration error: GEMINI_API_KEY is missing.' });
     }
 
-    // 3. Destructure and validate input from the client (index.html)
-    const { prompt, config, mode } = req.body;
+    // 5. Parse Request Body
+    const { prompt, config, mode } = request.body;
 
-    if (!prompt || !config || !mode) {
-        return res.status(400).json({ error: 'Missing required parameters (prompt, config, or mode).' });
+    if (!prompt || !mode) {
+        return response.status(400).json({ error: 'Missing required parameters: prompt or mode.' });
     }
 
     try {
-        // Create the model configuration using the parameters passed from the client
+        const ai = new GoogleGenerativeAI(API_KEY);
+        // Use Flash for drafts (speed), Pro for complex structure
+        const modelName = (mode === 'draft') ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
+        
         const model = ai.getGenerativeModel({
             model: modelName,
             systemInstruction: config.systemInstruction,
             generationConfig: config.generationConfig
         });
 
-        // 4. Call the Gemini API securely using the server-side API Key
         const result = await model.generateContent(prompt);
-        
-        // 5. Send the raw response text back to the client
-        // The client-side JS will handle the JSON parsing and rendering.
-        return res.status(200).json({ 
-            text: result.text,
-            mode: mode // Send back the mode for client-side processing
-        });
+        const responseText = result.response.text();
+
+        return response.status(200).json({ text: responseText });
 
     } catch (error) {
-        console.error("Gemini API call failed in proxy:", error);
-        return res.status(500).json({ 
-            error: 'Failed to generate content via proxy.',
-            details: error.message
-        });
+        console.error("Proxy Error:", error);
+        return response.status(500).json({ error: error.message || 'Internal Server Error' });
     }
+}
+```
+
+### Step 4: Verify the HTML Client Code (index.html)
+
+Ensure your `index.html` is correctly calling the proxy. Here is the specific `callProxy` function you need inside your `<script>` tag.
+
+```javascript
+// Inside your index.html <script type="module">
+
+async function callProxy(prompt, config, mode) {
+    // Note: We are calling the relative path '/api/gemini-proxy'
+    // This automatically resolves to your Vercel backend.
+    const response = await fetch('/api/gemini-proxy', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt, config, mode }),
+    });
+
+    // Parse the JSON response from the proxy
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || `Proxy Error: ${response.statusText}`);
+    }
+
+    return data; // This object contains { text: "..." }
 }
